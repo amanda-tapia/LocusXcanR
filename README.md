@@ -3,40 +3,40 @@ Source code available in <code> app.R </code>
 
 ## Prerequisites
 The following R packages are needed for plotting figures and reporting tables:
-
-library(shiny)
-
-library(tidyverse)
-
-library(DT)
-
-library(plotly)
-
-library(RColorBrewer)
-
-library(data.table)
-
-library(visNetwork)
+<ul>
+  <li>shiny</li>
+  <li>tidyverse</li>
+  <li>DT</li>
+  <li>plotly</li>
+  <li>RColorBrewer</li>
+  <li>data.table</li>
+  <li>visNetwork</li>
+</ul>
 
 ## app.R input data
-TWAS results
+<strong>TWAS results</strong> <br>
+The main results (p-values required) from TWAS. Option to convert p-values to -log10(p-values) and option to include results (p-values required) from TWAS conditional analysis. Other variables in the data set are optional (can be included, excluded, or left blank).
 
-GWAS results
+TO-DO: add an example table here, and include variable definitions.
 
-Gene expression prediction weights
+<strong>GWAS results</strong> <br>
+The main results (p-values required) from GWAS. Option to convert p-values to -log10(p-values). Other variables in the data set are optional (can be included, excluded, or left blank).
 
-Gene-gene correlations
+TO-DO: add an example table here, and include variable definitions.
 
-LD among GWAS variants
+<strong>Gene expression prediction weights</strong><br>
+The weights, or effect sizes, of model variants, trained in your gene expression reference panel. Required variables are gene identifier, variant identifier, model weight.
 
-### TWAS results
-#### Data format
+TO-DO: add an example table here, and include variable definitions.
 
-### GWAS results
-#### Data format
+<strong>Gene-gene correlations</strong>
 
-### Gene expression prediction weights
-#### Data format
+TO-DO: add an example table here, and include variable definitions.
+
+<strong>LD among GWAS variants</strong>
+
+TO-DO: add an example table here, and include variable definitions.
+
 
 ## Setup and usage example
 ### Hosting your Shiny app locally

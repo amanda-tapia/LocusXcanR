@@ -1,4 +1,6 @@
 # R Shiny application for integrated TWAS results
+This R Shiny application was developed to assist with TWAS fine-mapping. It allows researchers to integrate information from multiple sources (GWAS and TWAS) and interactively visualize TWAS results in-context, one genomic locus at a time.
+
 Source code available in <code> app.R </code>
 
 ## Prerequisites

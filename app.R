@@ -14,8 +14,15 @@ library(RColorBrewer)
 library(data.table)
 library(visNetwork)
 
+study_name="Genetic Epidemiology Research on Adult Health and Aging (GERA) Europeans"
+conditional_present=1
+metaanalysis_present=1
+twas_result="KaiserAnalysisDS.txt"
+weight_tbl="DGN-weights.txt"
+
+
 # analysis dataset
-kaiserds <- fread("KaiserAnalysisDS.txt",stringsAsFactors = F, header=T, sep = '\t')
+twas_ds <- fread(twas_result,stringsAsFactors = F, header=T, sep = '\t')
 
 
 # known variants datasets
@@ -26,13 +33,13 @@ wbcds <- read.table('WBC_knownsnp.match.txt',
 pltds <- read.table('PLT_knownsnp.match.txt',
                     stringsAsFactors = F, header=F, sep = '\t',fill=T,col.names=1:20, comment.char = "")
 
-# create indicator for variants in Kaiser data set
+# create indicator for variants in study data set
 rbcds$X21 <- ifelse(is.na(rbcds$X19), 0, 1)
 wbcds$X21 <- ifelse(is.na(wbcds$X19), 0, 1)
 pltds$X21 <- ifelse(is.na(pltds$X19), 0, 1)
 
 
-# kaiser gwas data (known variants at the locus)
+# study gwas data (known variants at the locus)
 gwasds <- read.table('gwaspval_DGN.txt',
                    stringsAsFactors = F, header = T, sep = '\t')
 gwasds$log10p <- -log10(gwasds$PVAL)
@@ -53,13 +60,13 @@ gwasallfin$neglog10p <- -log10(gwasallfin$PVAL)
 gwasallfin$poslog10p <- (-1)*gwasallfin$neglog10p
 
 
-# load predicted expression data
+# load correlated predicted expression data
 #expds <- fread("DGN_expression_dec.txt", header=T, stringsAsFactors = F)
 load("DGN_expression_dec_cor.Rdata")
 
 
-# load the DGN weights
-dgnwt <- fread("DGN-weights.txt", header = T,stringsAsFactors = F, fill=T)
+# load the weights data set
+weight_ds <- fread(weight_tbl, header = T,stringsAsFactors = F, fill=T)
 
 
 # load the LD data
@@ -74,7 +81,7 @@ cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2"
 
 
 # filter analysis dataset by tissue
-dgnds <- kaiserds %>% filter(tissue=='DGN')
+dgnds <- twas_ds %>% filter(tissue=='DGN')
 
 dgnds$locvar <- paste0("Locus ",dgnds$locus2," : ", "chr ",dgnds$chr," : ",dgnds$locstart,", ",
                        dgnds$locstop," : ",dgnds$index," : ",dgnds$pheno
@@ -113,8 +120,8 @@ metathresh <- log10(0.05/numsignif)
 
 # set up UI
 ui <- fluidPage(
-  h3("Transcriptome-wide association study (TWAS) using PredictDB Depression Genes and Networks (DGN) weights"),
-  h4("Genetic Epidemiology Research on Adult Health and Aging (GERA) Europeans"),
+  h3("Transcriptome-wide association study (TWAS)"),
+  h4(study_name),
   br(),
   br(),
   
@@ -441,7 +448,7 @@ server <- function(input,output){
     corplt <- merge(dgntblplt,Mindex,by.x="gene",by.y="gene")
 
     # get the DGN weights for the specific genes at locus
-    dgnwtloc <- dgnwt %>% filter(gene %in% corplt$gene)
+    weight_dsloc <- weight_ds %>% filter(gene %in% corplt$gene)
 
     # subset the GWAS variants for specific chr, and phenotype
     gwasallfinloc <- gwasallfin %>% filter(Locus==locnum()) %>%
@@ -449,20 +456,20 @@ server <- function(input,output){
     gwasallfinloc$posnum <- as.numeric(gwasallfinloc$pos)
 
     # get the matching GWAS variants for the weights
-    dgnwtgwasloc1 <- merge(dgnwtloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
+    weight_dsgwasloc1 <- merge(weight_dsloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
                            by.y=c('posnum','all1','all2'))
-    dgnwtgwasloc2 <- merge(dgnwtloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
+    weight_dsgwasloc2 <- merge(weight_dsloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
                            by.y=c('posnum','all2','all1'))
-    dgnwtgwasloc <- rbind(dgnwtgwasloc1,dgnwtgwasloc2)
+    weight_dsgwasloc <- rbind(weight_dsgwasloc1,weight_dsgwasloc2)
 
     # merge GWAS results with TWAS info
     TWASloc <- corplt %>% select(gene,genename,genestartMB,genemid,genestopMB,log10pval,corgroup)
     TWASloc$genemidMB <- round(TWASloc$genemid/1000000,4)
-    dgnwtgwaslocfin <- merge(dgnwtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
+    weight_dsgwaslocfin <- merge(weight_dsgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
 
     # set y limit
     yhigh <- max(corplt$log10pval)+0.25*max(corplt$log10pval)
-    ylow <- min(dgnwtgwasloc$poslog10p)+0.15*min(dgnwtgwasloc$poslog10p)
+    ylow <- min(weight_dsgwasloc$poslog10p)+0.15*min(weight_dsgwasloc$poslog10p)
     nudgeval <- 0.05*max(abs(yhigh))
 
     # set color scale values
@@ -488,13 +495,13 @@ server <- function(input,output){
 
     
     # match snp LD back with overall file
-    dgnwtgwaslocfin2 <- merge(dgnwtgwaslocfin,LDdsloc, by.x=c('V7'),by.y=c('posb'),all.x=T)
+    weight_dsgwaslocfin2 <- merge(weight_dsgwaslocfin,LDdsloc, by.x=c('V7'),by.y=c('posb'),all.x=T)
     
-    dgnwtgwaslocfin2_comp <- dgnwtgwaslocfin2[complete.cases(dgnwtgwaslocfin2), ]
-    dgnwtgwaslocfin2_comp$line <- ifelse(dgnwtgwaslocfin2_comp$weight<0,2,1)
+    weight_dsgwaslocfin2_comp <- weight_dsgwaslocfin2[complete.cases(weight_dsgwaslocfin2), ]
+    weight_dsgwaslocfin2_comp$line <- ifelse(weight_dsgwaslocfin2_comp$weight<0,2,1)
     
-    xlowMB <- min(corplt$genestartMB,round(dgnwtgwaslocfin2_comp$V7/1000000,4))-.0005
-    xhighMB <- max(corplt$genestopMB,round(dgnwtgwaslocfin2_comp$V7/1000000,4))+.0005
+    xlowMB <- min(corplt$genestartMB,round(weight_dsgwaslocfin2_comp$V7/1000000,4))-.0005
+    xhighMB <- max(corplt$genestopMB,round(weight_dsgwaslocfin2_comp$V7/1000000,4))+.0005
     
     
     # plot correlation categories at the locus, like locus zoom plot
@@ -502,7 +509,7 @@ server <- function(input,output){
       geom_hline(aes(yintercept=pthresh), lty=2, color="red") +
       geom_hline(aes(yintercept=log10(5*10^(-8))), lty=2, color="red") +
       geom_hline(aes(yintercept=0),size=1,color='black') +
-      geom_segment(data=dgnwtgwaslocfin2_comp,aes(x=round(V7/1000000,4),y=poslog10p,xend=genemidMB,yend=log10pval
+      geom_segment(data=weight_dsgwaslocfin2_comp,aes(x=round(V7/1000000,4),y=poslog10p,xend=genemidMB,yend=log10pval
                                             ,color=ldgroup)) +
       geom_point(aes(color=corgroup), pch=15) +
       geom_segment(aes(x=genestartMB,y=log10pval,xend=genestopMB,yend=log10pval, color=corgroup),size=2) +
@@ -519,7 +526,7 @@ server <- function(input,output){
       xlim(xlowMB,xhighMB) +
       ylim(ylow,yhigh) +
       theme(legend.position = 'top', legend.title = element_blank()) +
-      geom_point(data=dgnwtgwaslocfin2_comp, aes(x=round(V7/1000000,4),y=poslog10p,color=ldgroup)) #+
+      geom_point(data=weight_dsgwaslocfin2_comp, aes(x=round(V7/1000000,4),y=poslog10p,color=ldgroup)) #+
     )
 
     loczoom <- loczoom %>% layout(title = list(text="(a)", x=0, xanchor='left', y=.99),
@@ -561,7 +568,7 @@ server <- function(input,output){
     corplt <- merge(dgntblplt,Mindex,by.x="gene",by.y="gene")
     
     # get the DGN weights for the specific genes at locus
-    dgnwtloc <- dgnwt %>% filter(gene %in% corplt$gene)
+    weight_dsloc <- weight_ds %>% filter(gene %in% corplt$gene)
     
     # subset the GWAS variants for specific chr, and phenotype
     gwasallfinloc <- gwasallfin %>% filter(Locus==locnum()) %>%
@@ -569,20 +576,20 @@ server <- function(input,output){
     gwasallfinloc$posnum <- as.numeric(gwasallfinloc$pos)
     
     # get the matching GWAS variants for the weights
-    dgnwtgwasloc1 <- merge(dgnwtloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
+    weight_dsgwasloc1 <- merge(weight_dsloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
                            by.y=c('posnum','all1','all2'))
-    dgnwtgwasloc2 <- merge(dgnwtloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
+    weight_dsgwasloc2 <- merge(weight_dsloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
                            by.y=c('posnum','all2','all1'))
-    dgnwtgwasloc <- rbind(dgnwtgwasloc1,dgnwtgwasloc2)
+    weight_dsgwasloc <- rbind(weight_dsgwasloc1,weight_dsgwasloc2)
     
     # merge GWAS results with TWAS info
     TWASloc <- corplt %>% select(gene,genename,genestartMB,genemid,genestopMB,log10pval,corgroup)
     TWASloc$genemidMB <- round(TWASloc$genemid/1000000,4)
-    dgnwtgwaslocfin <- merge(dgnwtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
+    weight_dsgwaslocfin <- merge(weight_dsgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
     
     # set y limit
     yhigh <- max(corplt$log10pval)+0.15*max(corplt$log10pval)
-    ylow <- min(dgnwtgwasloc$poslog10p)+0.15*min(dgnwtgwasloc$poslog10p)
+    ylow <- min(weight_dsgwasloc$poslog10p)+0.15*min(weight_dsgwasloc$poslog10p)
     nudgeval <- 0.05*max(abs(yhigh))
     
     # set color scale values
@@ -604,18 +611,18 @@ server <- function(input,output){
                            right=T,include.lowest=T)]
     
     # match snp LD back with overall file
-    dgnwtgwaslocfin2 <- merge(dgnwtgwaslocfin,LDdsloc, by.x=c('V7'),by.y=c('posb'),all.x=T)
+    weight_dsgwaslocfin2 <- merge(weight_dsgwaslocfin,LDdsloc, by.x=c('V7'),by.y=c('posb'),all.x=T)
     
-    dgnwtgwaslocfin2_comp <- dgnwtgwaslocfin2[complete.cases(dgnwtgwaslocfin2), ]
-    dgnwtgwaslocfin2_comp$line <- ifelse(dgnwtgwaslocfin2_comp$weight<0,2,1)
+    weight_dsgwaslocfin2_comp <- weight_dsgwaslocfin2[complete.cases(weight_dsgwaslocfin2), ]
+    weight_dsgwaslocfin2_comp$line <- ifelse(weight_dsgwaslocfin2_comp$weight<0,2,1)
     
     
     # data for links
-    from <- dgnwtgwaslocfin2$rsid
-    to <- dgnwtgwaslocfin2$genename
-    weight <- dgnwtgwaslocfin2$weight
-    color <- dgnwtgwaslocfin2$ldcol
-    length <- 1/(dgnwtgwaslocfin2$log10pval-dgnwtgwaslocfin2$poslog10p)*1000
+    from <- weight_dsgwaslocfin2$rsid
+    to <- weight_dsgwaslocfin2$genename
+    weight <- weight_dsgwaslocfin2$weight
+    color <- weight_dsgwaslocfin2$ldcol
+    length <- 1/(weight_dsgwaslocfin2$log10pval-weight_dsgwaslocfin2$poslog10p)*1000
     links <- data.frame(from,to,weight,color,length)
     links$dashes <- ifelse(links$weight<0,TRUE,FALSE)
     links$width <- abs(links$weight)*100
@@ -639,7 +646,7 @@ server <- function(input,output){
     # nodesgene$Gene[nodesgene$size==maxp]=paste0(topgene,"*")
     
     
-    nodessnp <- dgnwtgwaslocfin2 %>% select(rsid,poslog10p,ldcol)
+    nodessnp <- weight_dsgwaslocfin2 %>% select(rsid,poslog10p,ldcol)
     colnames(nodessnp) <- c("id","poslog10p","color.background")
     nodessnp$size <- abs(nodessnp$poslog10p)
     nodessnp$title=nodessnp$id
@@ -764,20 +771,20 @@ server <- function(input,output){
                                  is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
     
-    locgwb <- kaiserds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshgwb <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="GWB",])))
+    pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
     
-    locgtl <- kaiserds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshgtl <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="GTL",])))
+    pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
     
-    locmsa <- kaiserds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshmsa <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="MSA",])))
+    pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
     
     
     #####################
@@ -883,20 +890,20 @@ server <- function(input,output){
                                  is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
     
-    locgwb <- kaiserds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshgwb <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="GWB",])))
+    pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
     
-    locgtl <- kaiserds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshgtl <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="GTL",])))
+    pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
     
-    locmsa <- kaiserds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshmsa <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="MSA",])))
+    pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
     
     
     #####################
@@ -1002,20 +1009,20 @@ server <- function(input,output){
                                  is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
     
-    locgwb <- kaiserds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshgwb <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="GWB",])))
+    pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
     
-    locgtl <- kaiserds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshgtl <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="GTL",])))
+    pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
     
-    locmsa <- kaiserds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+    locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
                                     pheno==locpheno & is.na(HLARegion) & is.na(MHCRegion)) %>%
       select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-    pthreshmsa <- -log10(0.05/(nrow(kaiserds[kaiserds$tissue=="MSA",])))
+    pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
     
     
     #####################
@@ -1151,7 +1158,7 @@ server <- function(input,output){
     locchr<- unique(locds$chr) #locus chromosome
     
     # select all genes at locus
-    gtltbl <- kaiserds %>% filter(tissue=='GTL',genestart>=xlow & genestop <=xhigh & pheno==locpheno & chr==locchr) %>%
+    gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow & genestop <=xhigh & pheno==locpheno & chr==locchr) %>%
       select(genename,chr, pheno,phenocat,se_beta_, p, SignifGene,HLARegion,MHCRegion)
     colnames(gtltbl) <- c("gene","chr","trait","trait category","beta","p-value","TWAS significant",
                           "HLA gene","MHC region")
@@ -1183,7 +1190,7 @@ server <- function(input,output){
     locchr<- unique(locds$chr) #locus chromosome
     
     # select all genes at locus
-    gwbtbl <- kaiserds %>% filter(tissue=='GWB',genestart>=xlow & genestop <=xhigh & pheno==locpheno & chr==locchr) %>%
+    gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow & genestop <=xhigh & pheno==locpheno & chr==locchr) %>%
       select(genename,chr, pheno,phenocat,se_beta_, p, SignifGene,HLARegion,MHCRegion)
     colnames(gwbtbl) <- c("gene","chr","trait","trait category","beta","p-value","TWAS significant",
                           "HLA gene","MHC region")
@@ -1215,7 +1222,7 @@ server <- function(input,output){
     locchr<- unique(locds$chr) #locus chromosome
     
     # select all genes at locus
-    msatbl <- kaiserds %>% filter(tissue=='MSA',genestart>=xlow & genestop <=xhigh & pheno==locpheno & chr==locchr) %>%
+    msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow & genestop <=xhigh & pheno==locpheno & chr==locchr) %>%
       select(genename,chr, pheno,phenocat,se_beta_, p, SignifGene,HLARegion,MHCRegion)
     colnames(msatbl) <- c("gene","chr","trait","trait category","beta","p-value","TWAS significant",
                           "HLA gene","MHC region")
@@ -1269,7 +1276,7 @@ server <- function(input,output){
   output$GTLtbltrt <- DT::renderDataTable({
     
     # select all genes at locus
-    gtltbl <- kaiserds %>% filter(tissue=='GTL',genestart>=xlow() & genestop<=xhigh() 
+    gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow() & genestop<=xhigh() 
                                   & pheno!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
       select(genename,chr, pheno,phenocat,se_beta_, p, SignifGene,HLARegion,MHCRegion)
     colnames(gtltbl) <- c("Gene","Chr","Trait","Trait category","Beta","P-value","TWAS significant",
@@ -1296,7 +1303,7 @@ server <- function(input,output){
   output$GWBtbltrt <- DT::renderDataTable({
     
     # select all genes at locus
-    gwbtbl <- kaiserds %>% filter(tissue=='GWB',genestart>=xlow() & genestop<=xhigh()
+    gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow() & genestop<=xhigh()
                                   & pheno!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
       select(genename,chr, pheno,phenocat,se_beta_, p, SignifGene,HLARegion,MHCRegion)
     colnames(gwbtbl) <- c("Gene","Chr","Trait","Trait category","Beta","P-value","TWAS significant",
@@ -1323,7 +1330,7 @@ server <- function(input,output){
   output$MSAtbltrt <- DT::renderDataTable({
     
     # select all genes at locus
-    msatbl <- kaiserds %>% filter(tissue=='MSA',genestart>=xlow() & genestop<=xhigh() 
+    msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow() & genestop<=xhigh() 
                                   & pheno!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
       select(genename,chr, pheno,phenocat,se_beta_, p, SignifGene,HLARegion,MHCRegion)
     colnames(msatbl) <- c("Gene","Chr","Trait","Trait category","Beta","P-value","TWAS significant",
@@ -1368,55 +1375,61 @@ server <- function(input,output){
       select(X1,X2,X3,X4,X5,X6,X8,X9,X10,X11,X12,X13,X14,X15,X21)
     colnames(phenotbl) <- c("RSID", "Reference", "Ancestry", "Trait", "Chr", "Pos_b37", "Gene", "Effect Allele",
                             "Other Allele", "EAF", "Beta", "SE", "P", "N","In Kaiser")
+							
+	if (nrow(phenotbl)==0){
+      datatable(phenotbl,
+                options=list(columnDefs = list(list(visible=FALSE, targets=c(15,16,17,18,19,20,21,22,23)))))
+    } else {
     
-    # select set of TWAS insignificant genes
-    dgntbl <- dgnds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locph & chr==locchr &
-                                SignifGene==0  & is.na(HLARegion) & is.na(MHCRegion)) %>% select(genename)
+		# select set of TWAS insignificant genes
+		dgntbl <- dgnds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locph & chr==locchr &
+									SignifGene==0  & is.na(HLARegion) & is.na(MHCRegion)) %>% select(genename)
 
-    # indicator for significant TWAS gene pattern 
-    phenotbl$X16 <- ifelse(grepl(paste(unique(locds$genename), collapse="|"),phenotbl$Gene),1,0)
-    
-    # indicator for non-significant TWAS gene pattern
-    phenotbl$X17 <- ifelse(grepl(paste(unique(dgntbl$genename),collapse="|"),phenotbl$Gene),1,0)
-    
-    # indicator for gene not predicted in Kaiser
-    phenotbl$notpred <- ifelse(grepl(paste(genes$genename[genes$X0==0],collapse = "|"),phenotbl$Gene),1,0)
-    phenotbl$notdgn <- ifelse(grepl(paste(genes$genename[genes$X0==1],collapse="|"),phenotbl$Gene),1,0)
-    
-    phenotbl$chrposall <- paste0(phenotbl$Chr,":",phenotbl$Pos_b37,":",phenotbl$`Effect Allele`,":",phenotbl$`Other Allele`)
-    phenotbl$chrposall2 <- paste0(phenotbl$Chr,":",phenotbl$Pos_b37,":",phenotbl$`Other Allele`,":",phenotbl$`Effect Allele`)
-    
-    # indicator for snps included in GWAS results
-    locgwas <- gwasdsfin %>% filter(Locus==locnum()) %>% select(SNP)
-    phenotbl$X19 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall),1,0)
-    phenotbl$X20 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall2),1,0)
-    
-    # print data table
-    datatable(phenotbl, #rownames=FALSE,
-              options=list(columnDefs = list(list(visible=FALSE, 
-                                                  targets=c(15,16,17,18,19,20,21,22,23))))
-              ) %>%
-      formatStyle("Gene", "X16", backgroundColor = styleEqual(
-        c(1), c("lightgreen"))
-      ) %>% 
-      formatStyle("In Kaiser", target = "row",
-        backgroundColor = styleEqual(c(0), c('red'))
-      ) %>%
-      formatStyle("Gene", "X17", backgroundColor = styleEqual(
-        c(1), c("yellow"))
-      ) %>%
-      formatStyle("RSID", "X19", backgroundColor = styleEqual(
-        c(1), c("lightgreen"))
-      ) %>%
-      formatStyle("RSID", "X20", backgroundColor = styleEqual(
-        c(1), c("lightgreen"))
-      ) %>%
-      formatStyle("Gene", "notpred", backgroundColor = styleEqual(
-        c(1), c("orange"))
-      ) %>%
-      formatStyle("Gene", "notdgn", backgroundColor = styleEqual(
-        c(1), c("red"))
-      )
+		# indicator for significant TWAS gene pattern 
+		phenotbl$X16 <- ifelse(grepl(paste(unique(locds$genename), collapse="|"),phenotbl$Gene),1,0)
+		
+		# indicator for non-significant TWAS gene pattern
+		phenotbl$X17 <- ifelse(grepl(paste(unique(dgntbl$genename),collapse="|"),phenotbl$Gene),1,0)
+		
+		# indicator for gene not predicted in Kaiser
+		phenotbl$notpred <- ifelse(grepl(paste(genes$genename[genes$X0==0],collapse = "|"),phenotbl$Gene),1,0)
+		phenotbl$notdgn <- ifelse(grepl(paste(genes$genename[genes$X0==1],collapse="|"),phenotbl$Gene),1,0)
+		
+		phenotbl$chrposall <- paste0(phenotbl$Chr,":",phenotbl$Pos_b37,":",phenotbl$`Effect Allele`,":",phenotbl$`Other Allele`)
+		phenotbl$chrposall2 <- paste0(phenotbl$Chr,":",phenotbl$Pos_b37,":",phenotbl$`Other Allele`,":",phenotbl$`Effect Allele`)
+		
+		# indicator for snps included in GWAS results
+		locgwas <- gwasdsfin %>% filter(Locus==locnum()) %>% select(SNP)
+		phenotbl$X19 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall),1,0)
+		phenotbl$X20 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall2),1,0)
+		
+		# print data table
+		datatable(phenotbl, #rownames=FALSE,
+				  options=list(columnDefs = list(list(visible=FALSE, 
+													  targets=c(15,16,17,18,19,20,21,22,23))))
+				  ) %>%
+		  formatStyle("Gene", "X16", backgroundColor = styleEqual(
+			c(1), c("lightgreen"))
+		  ) %>% 
+		  formatStyle("In Kaiser", target = "row",
+			backgroundColor = styleEqual(c(0), c('red'))
+		  ) %>%
+		  formatStyle("Gene", "X17", backgroundColor = styleEqual(
+			c(1), c("yellow"))
+		  ) %>%
+		  formatStyle("RSID", "X19", backgroundColor = styleEqual(
+			c(1), c("lightgreen"))
+		  ) %>%
+		  formatStyle("RSID", "X20", backgroundColor = styleEqual(
+			c(1), c("lightgreen"))
+		  ) %>%
+		  formatStyle("Gene", "notpred", backgroundColor = styleEqual(
+			c(1), c("orange"))
+		  ) %>%
+		  formatStyle("Gene", "notdgn", backgroundColor = styleEqual(
+			c(1), c("red"))
+		  )
+	}
   })
   
   ############################################################

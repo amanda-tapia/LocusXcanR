@@ -41,15 +41,10 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
   # load known variants dataset
   rbcds <- read.table(known_variants,
                      stringsAsFactors = F, header=F, sep = '\t',fill=T,col.names=1:20, comment.char = "")
-  #wbcds <- read.table('WBC_knownsnp.match.txt',
-  #                   stringsAsFactors = F, header=F, sep = '\t',fill=T,col.names=1:20, comment.char = "")
-  #pltds <- read.table('PLT_knownsnp.match.txt',
-  #                   stringsAsFactors = F, header=F, sep = '\t',fill=T,col.names=1:20, comment.char = "")
-  
-  # create indicator for known variants in study data set
+
+    # create indicator for known variants in study data set
   rbcds$X21 <- ifelse(is.na(rbcds$X19), 0, 1)
-  #wbcds$X21 <- ifelse(is.na(wbcds$X19), 0, 1)
-  #pltds$X21 <- ifelse(is.na(pltds$X19), 0, 1)  
+
   
   # study gwas data (known variants at the locus)
   gwasds <- read.table(known_gwas,

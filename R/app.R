@@ -83,81 +83,10 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
 
 
 
+ ####################################################################
+ 
 
-# library(shiny)
-# library(tidyverse)
-# library(DT)
-# library(plotly)
-# library(RColorBrewer)
-# library(data.table)
-# library(visNetwork)
-# 
-# study_name="Genetic Epidemiology Research on Adult Health and Aging (GERA) Europeans"
-# conditional_present=1
-# metaanalysis_present=1
-# twas_result="KaiserAnalysisDS.txt"
-# weight_tbl="DGN-weights.txt"
-# multiple_tissues=1
-# 
-# 
-# # analysis dataset
-# twas_ds <- fread(twas_result,stringsAsFactors = F, header=T, sep = '\t')
-# 
-# 
-# # known variants datasets
-# rbcds <- read.table('RBC_knownsnp.match.txt',
-#                     stringsAsFactors = F, header=F, sep = '\t',fill=T,col.names=1:20, comment.char = "")
-# wbcds <- read.table('WBC_knownsnp.match.txt',
-#                     stringsAsFactors = F, header=F, sep = '\t',fill=T,col.names=1:20, comment.char = "")
-# pltds <- read.table('PLT_knownsnp.match.txt',
-#                     stringsAsFactors = F, header=F, sep = '\t',fill=T,col.names=1:20, comment.char = "")
-# 
-# # create indicator for variants in study data set
-# rbcds$X21 <- ifelse(is.na(rbcds$X19), 0, 1)
-# wbcds$X21 <- ifelse(is.na(wbcds$X19), 0, 1)
-# pltds$X21 <- ifelse(is.na(pltds$X19), 0, 1)
-# 
-
-# # study gwas data (known variants at the locus)
-# gwasds <- read.table('gwaspval_DGN.txt',
-#                    stringsAsFactors = F, header = T, sep = '\t')
-# gwasds$log10p <- -log10(gwasds$PVAL)
-# gwasds$poslog10p <- log10(gwasds$PVAL)
-# gwasdsfin <- gwasds %>% separate(SNP,c("chr","pos","all1","all2"),sep=':',remove=F)
-# 
-# 
-# # genes included in PredictDB
-# genes <- read.table('DGN_genes_Kaiser.txt',
-#                     stringsAsFactors = T, header = T)
-# 
-# 
-# # load all Kaiser GWAS data (all GWAS with pvalues < 0.05)
-# #gwasall <- fread('kaiser.gwas_0005_OLD.txt', header = T,stringsAsFactors = F)
-# gwasall <- fread('kaiser.gwas_locusALL.txt', header = T,stringsAsFactors = F)
-# gwasallfin <- gwasall %>% separate(SNP,c('chr','pos','all1','all2'),sep=':',remove=F,extra = 'merge')
-# gwasallfin$neglog10p <- -log10(gwasallfin$PVAL)
-# gwasallfin$poslog10p <- (-1)*gwasallfin$neglog10p
-# 
-# 
-# # load correlated predicted expression data
-# #expds <- fread("DGN_expression_dec.txt", header=T, stringsAsFactors = F)
-# load("DGN_expression_dec_cor.Rdata")
-# 
-# 
-# # load the weights data set
-# weight_ds <- fread(weight_tbl, header = T,stringsAsFactors = F, fill=T)
-# 
-# # load the LD data
-# LDds <- read.table("locusLD_topsub.ld", header=T, stringsAsFactors = F)
-# 
-# # color blind color palette
-# cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-# 
-# 
-# 
-# ####################################################################
-# 
-#
+  
   # filter analysis dataset by tissue
   dgnds <- twas_ds %>% filter(tissue=='DGN')
   
@@ -196,119 +125,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
 ############################################################################################
 
 
-  # # set up UI
-  # ui <- shiny::fluidPage(
-  #   h3("Transcriptome-wide association study (TWAS)"),
-  #   shiny::h4(study_name),
-  #   shiny::br(),
-  #   shiny::br(),
-  # 
-  # 
-  #   shiny::br(),
-  #   shiny::fixedPanel(style="z-index:100;",
-  #              top = 125, left = 10, right = 0, width = "50%", draggable = T,
-  #              shiny::selectInput("locuslst","Select a locus to view (click and drag to reposition menu):",
-  #                          choices = loclistdet, width = "550px")
-  #              ),
-  #   shiny::br(),
-  #   shiny::br(),
-  # 
-  # 
-  #   shiny::h4(shiny::strong("Figure 1. TWAS-GWAS mirror plot of genes and variants within the locus")),
-  # 
-  #   "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the GERA TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the GERA GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category. Marginal TWAS displays results of gene-trait associations. Conditional TWAS displays results of gene-trait associations, conditional on reported GWAS variants at the locus (conditional results only available for significant TWAS genes).",
-  #   shiny::radioButtons("margcondradio", label = shiny::h5(shiny::strong("Select TWAS results to display:")),
-  #                choices = list("Marginal" = 1, "Conditional" = 2),
-  #                selected = 1, inline=T),
-  #   plotly::plotlyOutput("TWASmirror", height = 550),
-  #   shiny::br(),
-  #   shiny::hr(),
-  # 
-  # 
-  #   shiny::h4(shiny::strong("Figure 2. Predicted expression correlation between index TWAS gene and other TWAS significant and reported GWAS genes at the locus and their relationship to GWAS variants included in predicted gene expression model")),
-  #   "Note: Color scale for genes denotes the degree of predicted expression correlation with the index gene",
-  #   shiny::fluidRow(
-  #     shiny::column(6,
-  #            plotly::plotlyOutput("TWAScorr", height=600),
-  #     ),
-  #     shiny::column(6,
-  #       visNetwork::visNetworkOutput("TWASnetwork", height=600),
-  #     ),
-  #   ),
-  #   shiny::br(),
-  #   shiny::hr(),
-  # 
-  # 
-  #   shiny::h4(shiny::strong("Figure 3. Mirror plot of GERA TWAS and meta-analysis TWAS")),
-  #   shiny::h5("Note: "),
-  #   plotly::plotlyOutput("Tmetamirror", height=600),
-  #   shiny::br(),
-  #   shiny::hr(),
-  # 
-  #   shiny::h4(shiny::strong("Figure 4. Comparison of TWAS results from DGN reference panel to results from secondary reference panels")),
-  #   shiny::h5("Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel"),
-  #   shiny::h5("The figure in each tab displays a mirror plot of GERA results using DGN reference panel versus GERA results using a secondary reference panel (GWB, GTL, or MSA)."),
-  #   shiny::tabsetPanel(
-  #     id = "twascompare",
-  #     shiny::tabPanel("DGN vs. GWB",plotly::plotlyOutput("CompRefGWB", height=600)),
-  #     shiny::tabPanel("DGN vs. GTL",plotly::plotlyOutput("CompRefGTL", height=600)),
-  #     shiny::tabPanel("DGN vs. MSA",plotly::plotlyOutput("CompRefMSA", height=600))
-  #   ),
-  #   shiny::br(),
-  #   shiny::hr(),
-  # 
-  # 
-  #   shiny::h4(shiny::strong("Table 1. Overall TWAS results from primary and secondary reference panels within the locus")),
-  #   shiny::h5("Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel"),
-  #   shiny::h5(shiny::HTML('<span style="background-color:lightgreen">Significant gene-trait associations highlighted in green, </span><span style="background-color:tomato">HLA genes / MHC regions highlighted in red</span>')),
-  #   shiny::tabsetPanel(
-  #     id = 'twasresult',
-  #     shiny::tabPanel("DGN", DT::dataTableOutput("DGNtbl")),
-  #     shiny::tabPanel("GWB", DT::dataTableOutput("GWBtbl")),
-  #     shiny::tabPanel("GTL", DT::dataTableOutput("GTLtbl")),
-  #     shiny::tabPanel("MSA", DT::dataTableOutput("MSAtbl"))
-  #   ),
-  #   shiny::br(),
-  #   shiny::hr(),
-  # 
-  #   shiny::h4(shiny::strong("Table 2. Overall TWAS results for other traits in the trait category from primary and secondary reference panels within the locus")),
-  #   shiny::h5("Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel"),
-  #   shiny::h5(shiny::HTML('<span style="background-color:lightgreen">Significant gene-trait associations highlighted in green, </span><span style="background-color:tomato">HLA genes / MHC regions highlighted in red</span>')),
-  #   shiny::tabsetPanel(
-  #     id = 'twasresulttrt',
-  #     shiny::tabPanel("DGN", DT::dataTableOutput("DGNtbltrt")),
-  #     shiny::tabPanel("GWB", DT::dataTableOutput("GWBtbltrt")),
-  #     shiny::tabPanel("GTL", DT::dataTableOutput("GTLtbltrt")),
-  #     shiny::tabPanel("MSA", DT::dataTableOutput("MSAtbltrt"))
-  #   ),
-  #   shiny::br(),
-  #   shiny::hr(),
-  # 
-  # 
-  #   shiny::h4(shiny::strong("Table 3. Reported GWAS variants within the locus (all traits in the category)")),
-  #   shiny::h5(shiny::HTML('<span style="background-color:tomato">Table <strong>row</strong> is highlighted in red if the SNP is not in GERA imputation data</span>')),
-  #   shiny::h5(shiny::HTML('<span style="background-color:lightgreen"><strong>RSIDs</strong> reported in Figure 1 highlighted in green</span>')),
-  #   shiny::h5("GWAS ",shiny::strong("Genes"),":"),
-  #   shiny::p(shiny::HTML('<ul>
-  #     <li><span style="background-color:lightgreen">matching significant TWAS genes highlighted in green</span></li>
-  #     <li><span style="background-color:yellow"    >matching non-significant TWAS genes highlighted in yellow</span></li>
-  #     <li><span style="background-color:orange"    >included in DGN but not predicted in GERA highlighted in orange</span></li>
-  #     <li><span style="background-color:tomato"    >included in DGN but predictive model does not contain SNPs highlighted in red</span></li>
-  #     <li>not included in DGN (i.e. we have no info in this analysis) are not highlighted</li>
-  #     </ul>
-  #     ')),
-  #   shiny::br(),
-  #   DT::dataTableOutput("KnownSNPtbl"),
-  #   shiny::br(),
-  #   shiny:: hr(),
-  # 
-  # 
-  #   shiny::h4(shiny::strong("Table 4. GERA GWAS results displayed in Figure 1 as variants \"Reported in GWAS\"")),
-  #   shiny::h5("Note: Results listed below are from trait specific GWAS"),
-  #   DT::dataTableOutput("GWASvars"),
-  #   shiny::br()
-  # )
-  
+
   
   # set up UI
   ui <- 
@@ -323,12 +140,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           br(),
                           br(),
                           
-                          # selectInput("locuslst","Select a locus to view:",choices = loclist),
-                          # br(),
-                          
-                          # selectInput("loclstdet","Select a locus to view: ", choices = loclistdet, width="500px"),
-                          # br(),
-                          
+
                           br(),
                           fixedPanel(style="z-index:100;",
                                      top = 200, left = 10, right = 0, width = "60%", draggable = T,
@@ -339,19 +151,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           br(),
                           br(),
                           
-                          # h4("Figure 1. GERA TWAS gene-trait associations within the locus"),
-                          # h5("Note: Figure displays TWAS significant genes and any additional TWAS genes known from GWAS"),
-                          # plotlyOutput("TWASplt"),
-                          # br(),
-                          # 
-                          # h4("Figure 2. GERA GWAS known variants within the locus"),
-                          # plotlyOutput("GWASplt"),
-                          # br(),
-                          
-                          # uncomment when memory available
-                          # plotOutput("chrplt",height = 100),
-                          # br(),
-                          
+
                           h4(strong("Figure 1. TWAS-GWAS mirror plot of genes and variants within the locus")),
                           
                           "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the GERA TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the GERA GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category. Marginal TWAS displays results of gene-trait associations. Conditional TWAS displays results of gene-trait associations, conditional on reported GWAS variants at the locus (conditional results only available for significant TWAS genes).",
@@ -366,16 +166,10 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           h4(strong("Figure 2a. TWAS-GWAS mirror locus-zoom plot")),
                           "Note: Top panel displays predicted expression correlation between index TWAS gene and other genes at the locus. Bottom panel displays LD between the index SNP and other SNPs at the locus. Lines connect genes to their predictive model variants. Color scale for genes denotes the degree of predicted expression correlation with the index gene. Color scale for SNPs and solid lines denotes the degree of LD with the index SNP. Dashed red line in the top panel denotes TWAS p-value threshold = 4.37e-7, and in bottom panel denotes GWAS p-value threshold = 5.0e-8",
                           br(),
-                          # fluidRow(
-                          #   column(6,
-                          #     plotlyOutput("TWAScorr", height=600),
-                          #   ),
-                          #   column(6,
-                          #     visNetworkOutput("TWASnetwork", height=600),
-                          #   ),
-                          # ),
                           plotlyOutput("TWAScorr", height=550),
                           br(),
+                          
+                          
                           h4(strong("Figure 2b. Network visualization of TWAS results")),
                           "Sentinel TWAS gene is indicated by a star, all other genes are squares. Sentinel GWAS variant is indicated by a triangle, all other variants are circles. Color scale of all lines and shapes is based on correlation with the index gene or index variant. Line thickness corresponds to the model weight. Solid line indicates a positive direction of effect and dashed line indicates a negative direction. Size of the shape corresponds to the size of the -log10(p-value).",
                           br(),
@@ -391,7 +185,6 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           
                           h4(strong("Figure 4. Comparison of TWAS results from DGN reference panel to results from secondary reference panels")),
                           "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. The figure in each tab displays a mirror plot of GERA results using DGN reference panel versus GERA results using a secondary reference panel (GWB, GTL, or MSA).",
-                          #plotlyOutput("CompRef", height = 600),
                           tabsetPanel(
                             id = "twascompare",
                             tabPanel("DGN vs. GWB",plotlyOutput("CompRefGWB", height=600)),
@@ -401,10 +194,6 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           br(),
                           hr(),
                           
-                          # h4("Table 1. Overall GERA TWAS results within the locus"),
-                          # h5("Note: Significant gene-trait associations highlighted in green, HLA genes / MHC regions highlighted in red"),
-                          # DT::dataTableOutput("TWAStbl"),
-                          # br(),
                           
                           h4(strong("Table 1. Overall TWAS results from primary and secondary reference panels within the locus")),
                           "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. ",
@@ -440,30 +229,17 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           h5(HTML('<span style="background-color:lightgreen"><strong>RSIDs</strong> reported in Figure 1 highlighted in green</span>')),
                           h5("GWAS ",strong("Genes"),":"),
                           p(HTML('<ul>
-        <li><span style="background-color:lightgreen">matching significant TWAS genes highlighted in green</span></li>
-        <li><span style="background-color:yellow"    >matching non-significant TWAS genes highlighted in yellow</span></li>
-        <li><span style="background-color:orange"    >included in DGN but not predicted in GERA highlighted in orange</span></li>
-        <li><span style="background-color:tomato"    >included in DGN but predictive model does not contain SNPs highlighted in red</span></li>
-        <li>not included in DGN (i.e. we have no info in this analysis) are not highlighted</li>
-        </ul>
-        ')),
-                          br(),
+                                  <li><span style="background-color:lightgreen">matching significant TWAS genes highlighted in green</span></li>
+                                  <li><span style="background-color:yellow"    >matching non-significant TWAS genes highlighted in yellow</span></li>
+                                  <li><span style="background-color:orange"    >included in DGN but not predicted in GERA highlighted in orange</span></li>
+                                  <li><span style="background-color:tomato"    >included in DGN but predictive model does not contain SNPs highlighted in red</span></li>
+                                  <li>not included in DGN (i.e. we have no info in this analysis) are not highlighted</li>
+                                  </ul>
+                                  ')),
+                              br(),
                           DT::dataTableOutput("KnownSNPtbl"),
                           br(),
                           hr(),
-                          
-                          
-                          # h5(HTML('<span style="background-color:lightgreen">&nbsp;&nbsp; - matching significant TWAS genes highlighted in green</span>')),
-                          # h5("   - matching non-significant TWAS genes highlighted in yellow",
-                          #    style="color: yellow;"),
-                          # h5(HTML('<span style="background-color:yellow">Yellow Text with header</span>')),
-                          # p("yellow text with p()", style="background-color:yellow"),
-                          # h5("   - included in DGN but not predicted in GERA highlighted in orange",
-                          #    style="color: orange;"),
-                          # h5("   - included in DGN but predictive model does not contain SNPs highlighted in red",
-                          #    style="color: red;"),
-                          # h5("   - not included in DGN (i.e. we have no info in this analysis) are not highlighted"),
-                          
                           
                           
                           h4(strong("Table 4. GERA GWAS results displayed in Figure 1 as variants \"Reported in GWAS\"")),
@@ -534,8 +310,6 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                )
     )
   
-
-
 
 
 

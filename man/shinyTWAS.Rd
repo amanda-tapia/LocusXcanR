@@ -16,7 +16,10 @@ shinyTWAS(
   known_gwas,
   db_genes,
   all_gwas,
-  ld_gwas
+  ld_gwas,
+  ref_expr_name = "",
+  head_details = "",
+  method_details = ""
 )
 }
 \arguments{
@@ -41,6 +44,12 @@ shinyTWAS(
 \item{all_gwas}{File path to study GWAS data}
 
 \item{ld_gwas}{File path to the LD among study variants or an LD reference panel}
+
+\item{ref_expr_name}{Name of the reference expression data set used in the analysis (optional, missing name is default)}
+
+\item{head_details}{Any additional header details to be included in the app (optional, no details is default). HTML formatting commands may be used.}
+
+\item{method_details}{Detailed methods section (optional, no details is default). HTLM formatting commands may be used.}
 }
 \description{
 created by: Amanda L. Tapia    Date: 06/08/2020

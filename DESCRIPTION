@@ -1,0 +1,27 @@
+Package: ShinyTWAS
+Title: What The Package Does (one line, title case required)
+Version: 0.1
+Authors@R: person("Amanda", "Tapia", email = "altapia@live.unc.edu",
+                  role = c("aut", "cre"))
+Maintainer: Amanda Tapia <altapia@live.unc.edu>
+Description: What the package does (one paragraph)
+Depends: R (>= 3.1.0),
+         shiny,
+         DT,
+         plotly,
+         data.table,
+         visNetwork,
+         dplyr,
+         tidyr,
+Imports: RColorBrewer,
+         ggplot2,
+         tidyverse,
+         magrittr
+License: No license is available.
+LazyData: true
+RoxygenNote: 7.1.1
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Encoding: UTF-8

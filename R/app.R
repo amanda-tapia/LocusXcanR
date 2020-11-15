@@ -1,7 +1,7 @@
 #' TWAS results integrated with other 'omics studies
 #' R Shiny app to pull in relevant data for TWAS results interpretation
 #'
-#' created by: Amanda L. Tapia    Date: 06/08/2020
+#' created by: Amanda L. Tapia, Date: 06/08/2020
 #'
 #' @param twas_result File path to TWAS results, as a text string (required)
 #' @param weight_tbl File path to TWAS weights database, as a text string (required)
@@ -22,7 +22,6 @@
 #' @importFrom DT "formatStyle","styleEqual","datatable"
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","geom_point","geom_hline","theme_bw","geom_segment","annotate"
 #' @importFrom grDevices "X11"
-# @importFrom graphics "layout"
 #' @importFrom utils "read.table"
 #' @param db_genes File path to a list of genes in the database
 #' @param all_gwas File path to study GWAS data

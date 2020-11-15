@@ -31,19 +31,6 @@
 
 
 
-# shinyTWAS(twas_result = "C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/KaiserAnalysisDS.txt",
-#          known_variants = "C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/RBC_knownsnp.match.txt",
-#          weight_tbl = "C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/DGN-weights.txt",
-#          known_gwas = 'C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/gwaspval_DGN.txt',
-#          db_genes = 'C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/DGN_genes_Kaiser.txt',
-#          all_gwas = 'C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/kaiser.gwas_locusALL.txt',
-#          pred_exp_corr = "C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/DGN_expression_dec_cor.Rdata",
-#          ld_gwas = "C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/locusLD_topsub.ld",
-#          study_name = "Genetic Epidemiology Research on Adult Health and Aging (GERA) Europeans")
-
-
-
-
 shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
                       known_variants,known_gwas,db_genes,all_gwas,ld_gwas){
   

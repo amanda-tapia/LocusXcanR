@@ -13,6 +13,7 @@ Depends: R (>= 3.1.0),
          visNetwork,
          dplyr,
          tidyr,
+         readr
 Imports: RColorBrewer,
          ggplot2,
          tidyverse,

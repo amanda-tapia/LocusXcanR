@@ -22,6 +22,7 @@
 #' @importFrom DT "formatStyle","styleEqual","datatable"
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","geom_point","geom_hline","theme_bw","geom_segment","annotate"
 #' @importFrom utils "read.table"
+#
 #' @param db_genes File path to a list of genes in the database
 #' @param all_gwas File path to study GWAS data
 #' @param ld_gwas File path to the LD among study variants or an LD reference panel
@@ -30,6 +31,7 @@
 #' @param method_details Detailed methods section (optional, no details is default). HTLM formatting commands may be used.
 #' @param primary_tissue If multiple tissues are present, list the name of the primary tissue
 #' @param meta_present Results from TWAS meta-analysis present for comparison (optional, FALSE is default)
+#
 ####################################################################
 
 
@@ -54,7 +56,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
   cohort_gwas_knownfin <- cohort_gwas_known %>% separate(SNP,c("chr","pos","all1","all2"),sep=':',remove=F)
 
    
-  # genes included in PredictDB
+  # genes included in reference panel
   ref_panel_genes <- read.table(db_genes, stringsAsFactors = T, header = T)
   
   

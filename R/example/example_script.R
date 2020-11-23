@@ -37,7 +37,7 @@ LocusXcanR(
          ref_expr_name = "PredictDB Depression Genes and Networks (DGN) weights",
          head_details = headernote,
          method_details = method,
-         conditional_present = F,
+         conditional_present = T,
          primary_tissue = "DGN",
-         meta_present = F,
-         multiple_tissues = F)
+         meta_present = T,
+         multiple_tissues = T)

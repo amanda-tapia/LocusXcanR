@@ -18,10 +18,9 @@
 #' @importFrom plotly "renderPlotly","plotlyOutput","ggplotly"
 #' @importFrom visNetwork "renderVisNetwork","visNetworkOutput","visNetwork"
 #' @importFrom data.table ":=","data.table","as.data.table"
-#' @importFrom shiny "fluidPage","h3","h4","HTML","tabPanel","tabsetPanel","br","hr","strong"
+#' @importFrom shiny "fluidPage","h3","h4","HTML","tabPanel","tabsetPanel","br","hr","strong","navbarPage","h5","fixedPanel","p"
 #' @importFrom DT "formatStyle","styleEqual","datatable"
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","geom_point","geom_hline","theme_bw","geom_segment","annotate"
-#' @importFrom grDevices "X11"
 #' @importFrom utils "read.table"
 #' @param db_genes File path to a list of genes in the database
 #' @param all_gwas File path to study GWAS data
@@ -29,36 +28,34 @@
 #' @param ref_expr_name Name of the reference expression data set used in the analysis (optional, missing name is default)
 #' @param head_details Any additional header details to be included in the app (optional, no details is default). HTML formatting commands may be used.
 #' @param method_details Detailed methods section (optional, no details is default). HTLM formatting commands may be used.
+#' @param primary_tissue If multiple tissues are present, list the name of the primary tissue
+#' @param meta_present Results from TWAS meta-analysis present for comparison (optional, FALSE is default)
 ####################################################################
 
 
 
-shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
-                      known_variants,known_gwas,db_genes,all_gwas,ld_gwas,ref_expr_name="",head_details="",method_details=""){
+LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
+                      known_variants,known_gwas,db_genes,all_gwas,ld_gwas,ref_expr_name="",head_details="",method_details="",
+                      primary_tissue,meta_present=FALSE){
   
   # load analysis dataset
   twas_ds <- data.table::fread(twas_result,stringsAsFactors = F, header=T, sep = '\t')
   
   
   # load known variants dataset
-  rbcds <- read.table(known_variants,
-                     stringsAsFactors = F, header=F, sep = '\t',fill=T,col.names=1:20, comment.char = "")
-
-  # create indicator for known variants in study data set
-  rbcds$X21 <- ifelse(is.na(rbcds$X19), 0, 1)
-
+  GWAS_sentinel <- read.table(known_variants, stringsAsFactors = F, header=T, sep = '\t')  
+  
   
   # study gwas data (known variants at the locus)
-  gwasds <- read.table(known_gwas,
+  cohort_gwas_known <- read.table(known_gwas,
                         stringsAsFactors = F, header = T, sep = '\t')
-  gwasds$log10p <- -log10(gwasds$PVAL)
-  gwasds$poslog10p <- log10(gwasds$PVAL)
-  gwasdsfin <- gwasds %>% separate(SNP,c("chr","pos","all1","all2"),sep=':',remove=F)
+  cohort_gwas_known$log10p <- -log10(cohort_gwas_known$PVAL)
+  cohort_gwas_known$poslog10p <- log10(cohort_gwas_known$PVAL)
+  cohort_gwas_knownfin <- cohort_gwas_known %>% separate(SNP,c("chr","pos","all1","all2"),sep=':',remove=F)
 
    
   # genes included in PredictDB
-  genes <- read.table(db_genes,
-                     stringsAsFactors = T, header = T)
+  ref_panel_genes <- read.table(db_genes, stringsAsFactors = T, header = T)
   
   
   # load all Kaiser GWAS data (all GWAS with pvalues < 0.05)
@@ -89,31 +86,31 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
  
 
   
-  # filter analysis dataset by tissue
-  dgnds <- twas_ds %>% filter(tissue=='DGN')
+  # filter analysis dataset by primary tissue if multiple tissues present
+  primary_ref_ds <- twas_ds %>% filter(tissue==primary_tissue)
   
-  dgnds$locvar <- paste0("Locus ",dgnds$locus2," : ", "chr ",dgnds$chr," : ",dgnds$locstart,", ",
-                         dgnds$locstop," : ",dgnds$index," : ",dgnds$pheno
+  primary_ref_ds$locvar <- paste0("Locus ",primary_ref_ds$locus2," : ", "chr ",primary_ref_ds$chr," : ",primary_ref_ds$locstart,", ",
+                         primary_ref_ds$locstop," : ",primary_ref_ds$index," : ",primary_ref_ds$pheno
                         )
-  dgnds$genestartMB <- round(dgnds$genestart/1000000,4)
-  dgnds$genestopMB <- round(dgnds$genestop/1000000,4)
-  dgnds$log10pvalmeta <- -log10(dgnds$P_value_meta)
+  primary_ref_ds$genestartMB <- round(primary_ref_ds$genestart/1000000,4)
+  primary_ref_ds$genestopMB <- round(primary_ref_ds$genestop/1000000,4)
+  primary_ref_ds$log10pvalmeta <- -log10(primary_ref_ds$P_value_meta)
   
   
-  sorteddgn <- dgnds[
-    order( dgnds$locus2, dgnds$genestart, dgnds$genestop, dgnds$pheno ),
+  sortedprimary_ref_ <- primary_ref_ds[
+    order( primary_ref_ds$locus2, primary_ref_ds$genestart, primary_ref_ds$genestop, primary_ref_ds$pheno ),
   ]
   
   # list of unique loci
-  loclist <- sort(unique(dgnds$locus2[complete.cases(dgnds$locus2)]))
-  loclistdet <- unique(sorteddgn$locvar[complete.cases(sorteddgn$locus2)])
+  loclist <- sort(unique(primary_ref_ds$locus2[complete.cases(primary_ref_ds$locus2)]))
+  loclistdet <- unique(sortedprimary_ref_$locvar[complete.cases(sortedprimary_ref_$locus2)])
   
   
   # p-value threshold for primary reference panel
-  pthresh <- -log10(0.05/(nrow(dgnds)))
+  pthresh <- -log10(0.05/(nrow(primary_ref_ds)))
   
   # number of significant TWAS genes
-  signifrow <- dgnds %>% filter(SignifGene==1 & is.na(HLARegion) & is.na(MHCRegion)
+  signifrow <- primary_ref_ds %>% filter(SignifGene==1 & is.na(HLARegion) & is.na(MHCRegion)
                                & SingleSNP!=1)
   numsignif <- nrow(signifrow)
   
@@ -122,15 +119,68 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
 
 
 
-
+  
 ############################################################################################
 ############################################################################################
 
+
+  # Set the UI when conditional analysis results are present
+  # radio button to toggle between marginal and conditional results, when conditional results available
+  if (conditional_present==TRUE){
+    radios_cond <- shiny::radioButtons("margcondradio", label = h5(strong("Select TWAS results to display:")),
+                                       choices = list("Marginal TWAS" = 1, "Conditional TWAS" = 2), 
+                                       selected = 1, inline=T)
+  } else if(conditional_present==FALSE) {
+    radios_cond <- ""
+  }
+  
+  
+  # Set the UI when meta-analysis results are present for comparison
+  # plot the figure if meta-analysis results are present, otherwise plot nothing
+  if (meta_present==TRUE){
+    meta_result1 <- shiny::h4(shiny::strong("Mirror plot of GERA TWAS and meta-analysis TWAS"))
+    meta_result2 <- "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays the same genes from TWAS meta-analysis of ARIC, WHI, and BioMe. In both plots, \"reported in GWAS\" means that the TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity."
+    meta_result3 <- plotly::plotlyOutput("Tmetamirror", height=600)
+    meta_result4 <- shiny::br()
+    meta_result5 <- shiny::hr()
+  } else if(meta_present==FALSE) {
+    meta_result1 <- ""
+    meta_result2 <- ""
+    meta_result3 <- ""
+    meta_result4 <- ""
+    meta_result5 <- ""
+  }
+  
+  
+  # Set the UI when results from multiple tissues are available for comparison
+  # plot the figure if meta-analysis results are present, otherwise plot nothing
+  if (multiple_tissues==TRUE){
+    secondary_result1 <- h4(strong("Comparison of TWAS results from DGN reference panel to results from secondary reference panels"))
+    secondary_result2 <- "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. The figure in each tab displays a mirror plot of GERA results using DGN reference panel versus GERA results using a secondary reference panel (GWB, GTL, or MSA)."
+   
+    secondary_result3 <- tabsetPanel(
+      id = "twascompare",
+      tabPanel(paste0(primary_tissue," vs. GWB"),plotlyOutput("CompRefGWB", height=600)),
+      tabPanel(paste0(primary_tissue," vs. GTL"),plotlyOutput("CompRefGTL", height=600)),
+      tabPanel(paste0(primary_tissue," vs. MSA"),plotlyOutput("CompRefMSA", height=600))
+    )
+    
+    secondary_result4 <- shiny::br()
+    secondary_result5 <- shiny::hr()
+  } else if(multiple_tissues==FALSE) {
+    secondary_result1 <- ""
+    secondary_result2 <- ""
+    secondary_result3 <- ""
+    secondary_result4 <- ""
+    secondary_result5 <- ""
+  }
 
 
   
-  # set up UI
-  ui <- 
+  
+  # define the UI
+  ui <- #tagList(
+    #useShinyjs(),
     navbarPage(title="LocusXcanR",
                tabPanel(title="Results",
                         fluidPage(
@@ -145,7 +195,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           br(),
                           fixedPanel(style="z-index:100;",
                                      top = 200, left = 10, right = 0, width = "60%", draggable = T,
-                                     selectInput("locuslst","Select a locus to view (click and drag to reposition menu):",
+                                     shiny::selectInput("locuslst","Select a locus to view (click and drag to reposition menu):",
                                                  choices = loclistdet,width = "550px")
                           ),
                           br(),
@@ -153,47 +203,40 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           br(),
                           
 
-                          h4(strong("Figure 1. TWAS-GWAS mirror plot of genes and variants within the locus")),
-                          
+                          h4(strong("TWAS-GWAS mirror plot of genes and variants within the locus")),
                           "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the GERA TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the GERA GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category. Marginal TWAS displays results of gene-trait associations. Conditional TWAS displays results of gene-trait associations, conditional on reported GWAS variants at the locus (conditional results only available for significant TWAS genes).",
-                          radioButtons("margcondradio", label = h5(strong("Select TWAS results to display:")),
-                                       choices = list("Marginal" = 1, "Conditional" = 2), 
-                                       selected = 1, inline=T),  
+                          radios_cond,
                           plotlyOutput("TWASmirror", height = 550),
                           br(),
                           hr(),
                           
                           
-                          h4(strong("Figure 2a. TWAS-GWAS mirror locus-zoom plot")),
+                          h4(strong("TWAS-GWAS mirror locus-zoom plot")),
                           "Note: Top panel displays predicted expression correlation between index TWAS gene and other genes at the locus. Bottom panel displays LD between the index SNP and other SNPs at the locus. Lines connect genes to their predictive model variants. Color scale for genes denotes the degree of predicted expression correlation with the index gene. Color scale for SNPs and solid lines denotes the degree of LD with the index SNP. Dashed red line in the top panel denotes TWAS p-value threshold = 4.37e-7, and in bottom panel denotes GWAS p-value threshold = 5.0e-8",
                           br(),
                           plotlyOutput("TWAScorr", height=550),
                           br(),
                           
                           
-                          h4(strong("Figure 2b. Network visualization of TWAS results")),
+                          h4(strong("Network visualization of TWAS results")),
                           "Sentinel TWAS gene is indicated by a star, all other genes are squares. Sentinel GWAS variant is indicated by a triangle, all other variants are circles. Color scale of all lines and shapes is based on correlation with the index gene or index variant. Line thickness corresponds to the model weight. Solid line indicates a positive direction of effect and dashed line indicates a negative direction. Size of the shape corresponds to the size of the -log10(p-value).",
                           br(),
                           visNetworkOutput("TWASnetwork", height=600),
                           hr(),
                           
                           
-                          h4(strong("Figure 3. Mirror plot of GERA TWAS and meta-analysis TWAS")),
-                          "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays the same genes from TWAS meta-analysis of ARIC, WHI, and BioMe. In both plots, \"reported in GWAS\" means that the TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity.",
-                          plotlyOutput("Tmetamirror", height=600),
-                          br(),
-                          hr(),
+                          meta_result1,
+                          meta_result2,
+                          meta_result3,
+                          meta_result4,
+                          meta_result5,
+
                           
-                          h4(strong("Figure 4. Comparison of TWAS results from DGN reference panel to results from secondary reference panels")),
-                          "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. The figure in each tab displays a mirror plot of GERA results using DGN reference panel versus GERA results using a secondary reference panel (GWB, GTL, or MSA).",
-                          tabsetPanel(
-                            id = "twascompare",
-                            tabPanel("DGN vs. GWB",plotlyOutput("CompRefGWB", height=600)),
-                            tabPanel("DGN vs. GTL",plotlyOutput("CompRefGTL", height=600)),
-                            tabPanel("DGN vs. MSA",plotlyOutput("CompRefMSA", height=600))
-                          ),
-                          br(),
-                          hr(),
+                          secondary_result1,
+                          secondary_result2,
+                          secondary_result3,
+                          secondary_result4,
+                          secondary_result5,
                           
                           
                           h4(strong("Table 1. Overall TWAS results from primary and secondary reference panels within the locus")),
@@ -202,7 +245,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           " MHC region is defined as GRCh37; chr6:28,477,797-33,448,354. Single SNP model indicates that the predictive expression model for the gene contained only a single SNP.",
                           tabsetPanel(
                             id = 'twasresult',
-                            tabPanel("DGN", DT::dataTableOutput("DGNtbl")),
+                            tabPanel("DGN", DT::dataTableOutput("primary_ref_tbl")),
                             tabPanel("GWB", DT::dataTableOutput("GWBtbl")),
                             tabPanel("GTL", DT::dataTableOutput("GTLtbl")),
                             tabPanel("MSA", DT::dataTableOutput("MSAtbl"))
@@ -216,7 +259,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                           " MHC region is defined as GRCh37; chr6:28,477,797-33,448,354. Single SNP model indicates that the predictive expression model for the gene contained only a single SNP.",
                           tabsetPanel(
                             id = 'twasresulttrt',
-                            tabPanel("DGN", DT::dataTableOutput("DGNtbltrt")),
+                            tabPanel("DGN", DT::dataTableOutput("primary_ref_tbltrt")),
                             tabPanel("GWB", DT::dataTableOutput("GWBtbltrt")),
                             tabPanel("GTL", DT::dataTableOutput("GTLtbltrt")),
                             tabPanel("MSA", DT::dataTableOutput("MSAtbltrt"))
@@ -252,11 +295,11 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                
                #########################################################################################    
                
-               tabPanel("Methods",
+               shiny::tabPanel("Methods",
                         method_details
                )
     )
-  
+#  )
 
 
 
@@ -270,7 +313,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     # define reactive variables for all plots
     locds <- reactive({
-      filter(dgnds, locvar==input$locuslst)
+      filter(primary_ref_ds, locvar==input$locuslst)
     })
     
     # get the locus number from the detailed drop down menu
@@ -297,7 +340,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     # set the dataset to extract known variants at the locus
     ds <- reactive({
       if (locphcat()=="RBC") {
-        rbcds
+        GWAS_sentinel
       } else if (locphcat()=="WBC") {
         wbcds
       } else {
@@ -313,8 +356,8 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     })
     
     # select all TWAS genes at locus
-    dgntbl <-  reactive({
-      tmp <- filter(dgnds,genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr())
+    primary_ref_tbl <-  reactive({
+      tmp <- filter(primary_ref_ds,genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr())
       
       if (nrow(phenotbl())==0){
         tmp$kngene="Not Reported in GWAS"
@@ -344,16 +387,17 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     ############################################################
     
     
+    
     # TWAS/GWAS mirror plot
     output$TWASmirror <- renderPlotly({
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       yhigh <- max(locds$log10pval)+0.25*max(locds$log10pval)
-      pthresh <- -log10(0.05/(nrow(dgnds)))
+      pthresh <- -log10(0.05/(nrow(primary_ref_ds)))
       locchr <- unique(locds$chr)
 
       # select known variants at locus
       if (locphcat()=="RBC") {
-        ds=rbcds
+        ds=GWAS_sentinel
       } else if (locphcat()=="WBC") {
         ds=wbcds
       } else {
@@ -361,15 +405,15 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       }
       
       # select significant and known genes to plot
-      dgntblplt <- dgntbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
+      primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
       
       # select the GWAS results at the locus
       gwasloc <- gwasallfin %>% filter(Locus==locnum())
 
-      if (nrow(gwasdsfin[gwasdsfin$Locus==locnum(),])==0){
+      if (nrow(cohort_gwas_knownfin[cohort_gwas_knownfin$Locus==locnum(),])==0){
         gwasloc$knsnp <- "Not reported in GWAS"
       } else {
-        gwasloc$knsnp <- ifelse(grepl(paste(unique(gwasdsfin$SNP[gwasdsfin$Locus==locnum()]),collapse="|"),
+        gwasloc$knsnp <- ifelse(grepl(paste(unique(cohort_gwas_knownfin$SNP[cohort_gwas_knownfin$Locus==locnum()]),collapse="|"),
                                       gwasloc$SNP),"Reported in GWAS","Not reported in GWAS")
       }
       
@@ -377,7 +421,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       gwaslocnotkn <- gwasloc %>% filter(knsnp=="Not reported in GWAS")
       
       # known variants at the locus, regardless of pvalue
-      knowngwas <- gwasdsfin %>% filter(Locus==locnum())
+      knowngwas <- cohort_gwas_knownfin %>% filter(Locus==locnum())
       
       if (nrow(knowngwas)>0){
         knowngwas$knsnp <- "Reported in GWAS"
@@ -390,11 +434,11 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       nudgevalg <- 0.05*ylow
       
       # define specific colors for known/not known genes
-      if(length(unique(dgntblplt$kngene))==1){
-        if(unique(dgntblplt$kngene)=="Not reported in GWAS"){
+      if(length(unique(primary_ref_tblplt$kngene))==1){
+        if(unique(primary_ref_tblplt$kngene)=="Not reported in GWAS"){
           myColors <- setNames( c('#56B4E9','#000000'),
                                 c("Not reported in GWAS","Reported in GWAS") )
-        } else if(unique(dgntblplt$kngene)=="Reported in GWAS"){
+        } else if(unique(primary_ref_tblplt$kngene)=="Reported in GWAS"){
           myColors <- setNames( c('#000000','#56B4E9'),
                                 c("Reported in GWAS","Not reported in GWAS") )
         } else {
@@ -414,15 +458,19 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                   , c("Reported in GWAS","Not reported in GWAS",NA))
       colScaleg <- scale_colour_manual(values=myColorsg)
       
-      if (input$margcondradio==1){
-        pvalplt <- dgntblplt$log10pval
-      }
-      else if(input$margcondradio==2){
-        pvalplt <- -log10(dgntblplt$p_final)
+      if (conditional_present==TRUE){
+        if (input$margcondradio==1){
+          pvalplt <- primary_ref_tblplt$log10pval
+        }
+        else if(input$margcondradio==2){
+          pvalplt <- -log10(primary_ref_tblplt$p_final)
+        }
+      } else{
+          pvalplt <- primary_ref_tblplt$log10pval
       }
       
       # TWAS plot
-      p <- ggplotly(ggplot(data=dgntblplt, aes(x=round(genemid/1000000,4), y=pvalplt, color=as.factor(kngene))) + 
+      p <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=round(genemid/1000000,4), y=pvalplt, color=as.factor(kngene))) + 
                       geom_point(pch=15) +
                       geom_segment(aes(x = genestartMB, y = pvalplt, xend = genestopMB, yend = pvalplt, color=as.factor(kngene)), size=2) +
                       geom_text(aes(x=round(genemid/1000000,4),y=pvalplt,label=genename,color=as.factor(kngene)), nudge_y = nudgeval, size=4) +
@@ -476,9 +524,9 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     output$TWAScorr <- renderPlotly({
       
       # select significant and known genes to plot
-      dgntblplt <- dgntbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
-      uniqgenes <- dgntblplt %>% select(gene)
-      indexgene <- dgntblplt$gene[dgntblplt$p == min(dgntblplt$p)]
+      primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
+      uniqgenes <- primary_ref_tblplt %>% select(gene)
+      indexgene <- primary_ref_tblplt$gene[primary_ref_tblplt$p == min(primary_ref_tblplt$p)]
       
       
       # extract set of genes from correlation matrix
@@ -501,10 +549,10 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       
       # match correlation values and categories back to overall table
-      corplt <- merge(dgntblplt,Mindex,by.x="gene",by.y="gene")
+      corplt <- merge(primary_ref_tblplt,Mindex,by.x="gene",by.y="gene")
       
-      # get the DGN weights for the specific genes at locus
-      dgnwtloc <- weight_ds %>% filter(gene %in% corplt$gene)
+      # get the primary_ref weights for the specific genes at locus
+      primary_ref_wtloc <- weight_ds %>% filter(gene %in% corplt$gene)
       
       # subset the GWAS variants for specific chr, and phenotype
       gwasallfinloc <- gwasallfin %>% filter(Locus==locnum()) %>%
@@ -512,20 +560,20 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       gwasallfinloc$posnum <- as.numeric(gwasallfinloc$pos)
       
       # get the matching GWAS variants for the weights
-      dgnwtgwasloc1 <- merge(dgnwtloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
+      primary_ref_wtgwasloc1 <- merge(primary_ref_wtloc,gwasallfinloc,by.x=c('position','ref_allele','eff_allele'),
                              by.y=c('posnum','all1','all2'))
-      dgnwtgwasloc2 <- merge(dgnwtloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
+      primary_ref_wtgwasloc2 <- merge(primary_ref_wtloc,gwasallfinloc,by.x=c('position','ref_allele','eff_allele'),
                              by.y=c('posnum','all2','all1'))
-      dgnwtgwasloc <- rbind(dgnwtgwasloc1,dgnwtgwasloc2)
+      primary_ref_wtgwasloc <- rbind(primary_ref_wtgwasloc1,primary_ref_wtgwasloc2)
       
       # merge GWAS results with TWAS info
       TWASloc <- corplt %>% select(gene,genename,genestartMB,genemid,genestopMB,log10pval,corgroup)
       TWASloc$genemidMB <- round(TWASloc$genemid/1000000,4)
-      dgnwtgwaslocfin <- merge(dgnwtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
+      primary_ref_wtgwaslocfin <- merge(primary_ref_wtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
       
       # set y limit
       yhigh <- max(corplt$log10pval)+0.25*max(corplt$log10pval)
-      ylow <- min(dgnwtgwasloc$poslog10p,log10(5*10^(-8)))+0.15*min(dgnwtgwasloc$poslog10p,log10(5*10^(-8)))
+      ylow <- min(primary_ref_wtgwasloc$poslog10p,log10(5*10^(-8)))+0.15*min(primary_ref_wtgwasloc$poslog10p,log10(5*10^(-8)))
       nudgeval <- 0.05*max(abs(yhigh))
       
       # set color scale values
@@ -551,13 +599,13 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       
       # match snp LD back with overall file
-      dgnwtgwaslocfin2 <- merge(dgnwtgwaslocfin,LDdsloc, by.x=c('V7'),by.y=c('posb'),all.x=T)
+      primary_ref_wtgwaslocfin2 <- merge(primary_ref_wtgwaslocfin,LDdsloc, by.x=c('position'),by.y=c('posb'),all.x=T)
       
-      dgnwtgwaslocfin2_comp <- dgnwtgwaslocfin2[complete.cases(dgnwtgwaslocfin2), ]
-      dgnwtgwaslocfin2_comp$line <- ifelse(dgnwtgwaslocfin2_comp$weight<0,2,1)
+      primary_ref_wtgwaslocfin2_comp <- primary_ref_wtgwaslocfin2[complete.cases(primary_ref_wtgwaslocfin2), ]
+      primary_ref_wtgwaslocfin2_comp$line <- ifelse(primary_ref_wtgwaslocfin2_comp$weight<0,2,1)
       
-      xlowMB <- min(corplt$genestartMB,round(dgnwtgwaslocfin2_comp$V7/1000000,4))-.0005
-      xhighMB <- max(corplt$genestopMB,round(dgnwtgwaslocfin2_comp$V7/1000000,4))+.0005
+      xlowMB <- min(corplt$genestartMB,round(primary_ref_wtgwaslocfin2_comp$position/1000000,4))-.0005
+      xhighMB <- max(corplt$genestopMB,round(primary_ref_wtgwaslocfin2_comp$position/1000000,4))+.0005
       
 
       # plot correlation categories at the locus, like locus zoom plot
@@ -565,7 +613,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                             geom_hline(aes(yintercept=pthresh), lty=2, color="red") +
                             geom_hline(aes(yintercept=log10(5*10^(-8))), lty=2, color="red") +
                             geom_hline(aes(yintercept=0),size=1,color='black') +
-                            geom_segment(data=dgnwtgwaslocfin2_comp,aes(x=round(V7/1000000,4),y=poslog10p,xend=genemidMB,yend=log10pval
+                            geom_segment(data=primary_ref_wtgwaslocfin2_comp,aes(x=round(position/1000000,4),y=poslog10p,xend=genemidMB,yend=log10pval
                                                                         ,color=ldgroup)) +
                             geom_point(aes(color=corgroup), pch=15) +
                             geom_segment(aes(x=genestartMB,y=log10pval,xend=genestopMB,yend=log10pval, color=corgroup),size=2) +
@@ -584,7 +632,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                             theme(legend.position = 'top', legend.title = element_blank()) +
                             #annotate(geom="text",x=round((xlow()+270000)/1000000,4), y=pthresh-nudgeval, color='red',
                             #         label=paste0("TWAS p-value: ",formatC(10^(-pthresh), format = "e", digits = 2)),size=4) +
-                            geom_point(data=dgnwtgwaslocfin2_comp, aes(x=round(V7/1000000,4),y=poslog10p,color=ldgroup)) #+
+                            geom_point(data=primary_ref_wtgwaslocfin2_comp, aes(x=round(position/1000000,4),y=poslog10p,color=ldgroup)) #+
       )
       
       loczoom <- loczoom %>% plotly::layout(title = list(text=loctitle(), x=0, xanchor='left', y=.99),
@@ -601,9 +649,9 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     output$TWASnetwork <- renderVisNetwork({
       
       # select significant and known genes to plot
-      dgntblplt <- dgntbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
-      uniqgenes <- dgntblplt %>% select(gene)
-      indexgene <- dgntblplt$gene[dgntblplt$p == min(dgntblplt$p)]
+      primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
+      uniqgenes <- primary_ref_tblplt %>% select(gene)
+      indexgene <- primary_ref_tblplt$gene[primary_ref_tblplt$p == min(primary_ref_tblplt$p)]
       
       # extract set of genes from correlation matrix
       Mindex <- data.table(M[uniqgenes$gene,indexgene])
@@ -623,10 +671,10 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                            right=T,include.lowest = T)]
       
       # match correlation values and categories back to overall table
-      corplt <- merge(dgntblplt,Mindex,by.x="gene",by.y="gene")
+      corplt <- merge(primary_ref_tblplt,Mindex,by.x="gene",by.y="gene")
       
-      # get the DGN weights for the specific genes at locus
-      dgnwtloc <- weight_ds %>% filter(gene %in% corplt$gene)
+      # get the primary_ref weights for the specific genes at locus
+      primary_ref_wtloc <- weight_ds %>% filter(gene %in% corplt$gene)
       
       # subset the GWAS variants for specific chr, and phenotype
       gwasallfinloc <- gwasallfin %>% filter(Locus==locnum()) %>%
@@ -634,20 +682,20 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       gwasallfinloc$posnum <- as.numeric(gwasallfinloc$pos)
       
       # get the matching GWAS variants for the weights
-      dgnwtgwasloc1 <- merge(dgnwtloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
+      primary_ref_wtgwasloc1 <- merge(primary_ref_wtloc,gwasallfinloc,by.x=c('position','ref_allele','eff_allele'),
                              by.y=c('posnum','all1','all2'))
-      dgnwtgwasloc2 <- merge(dgnwtloc,gwasallfinloc,by.x=c('V7','ref_allele','eff_allele'),
+      primary_ref_wtgwasloc2 <- merge(primary_ref_wtloc,gwasallfinloc,by.x=c('position','ref_allele','eff_allele'),
                              by.y=c('posnum','all2','all1'))
-      dgnwtgwasloc <- rbind(dgnwtgwasloc1,dgnwtgwasloc2)
+      primary_ref_wtgwasloc <- rbind(primary_ref_wtgwasloc1,primary_ref_wtgwasloc2)
       
       # merge GWAS results with TWAS info
       TWASloc <- corplt %>% select(gene,genename,genestartMB,genemid,genestopMB,log10pval,corgroup)
       TWASloc$genemidMB <- round(TWASloc$genemid/1000000,4)
-      dgnwtgwaslocfin <- merge(dgnwtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
+      primary_ref_wtgwaslocfin <- merge(primary_ref_wtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
       
       # set y limit
       yhigh <- max(corplt$log10pval)+0.15*max(corplt$log10pval)
-      ylow <- min(dgnwtgwasloc$poslog10p)+0.15*min(dgnwtgwasloc$poslog10p)
+      ylow <- min(primary_ref_wtgwasloc$poslog10p)+0.15*min(primary_ref_wtgwasloc$poslog10p)
       nudgeval <- 0.05*max(abs(yhigh))
       
       # set color scale values
@@ -669,18 +717,18 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                              right=T,include.lowest=T)]
       
       # match snp LD back with overall file
-      dgnwtgwaslocfin2 <- merge(dgnwtgwaslocfin,LDdsloc, by.x=c('V7'),by.y=c('posb'),all.x=T)
+      primary_ref_wtgwaslocfin2 <- merge(primary_ref_wtgwaslocfin,LDdsloc, by.x=c('position'),by.y=c('posb'),all.x=T)
       
-      dgnwtgwaslocfin2_comp <- dgnwtgwaslocfin2[complete.cases(dgnwtgwaslocfin2), ]
-      dgnwtgwaslocfin2_comp$line <- ifelse(dgnwtgwaslocfin2_comp$weight<0,2,1)
+      primary_ref_wtgwaslocfin2_comp <- primary_ref_wtgwaslocfin2[complete.cases(primary_ref_wtgwaslocfin2), ]
+      primary_ref_wtgwaslocfin2_comp$line <- ifelse(primary_ref_wtgwaslocfin2_comp$weight<0,2,1)
       
       
       # data for links
-      from <- dgnwtgwaslocfin2$rsid
-      to <- dgnwtgwaslocfin2$genename
-      weight <- dgnwtgwaslocfin2$weight
-      color <- dgnwtgwaslocfin2$ldcol
-      length <- 1/(dgnwtgwaslocfin2$log10pval-dgnwtgwaslocfin2$poslog10p)*1000
+      from <- primary_ref_wtgwaslocfin2$rsid
+      to <- primary_ref_wtgwaslocfin2$genename
+      weight <- primary_ref_wtgwaslocfin2$weight
+      color <- primary_ref_wtgwaslocfin2$ldcol
+      length <- 1/(primary_ref_wtgwaslocfin2$log10pval-primary_ref_wtgwaslocfin2$poslog10p)*1000
       links <- data.frame(from,to,weight,color,length)
       links$dashes <- ifelse(links$weight<0,TRUE,FALSE)
       links$width <- abs(links$weight)*100
@@ -704,7 +752,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       # nodesgene$Gene[nodesgene$size==maxp]=paste0(topgene,"*")
       
       
-      nodessnp <- dgnwtgwaslocfin2 %>% select(rsid,poslog10p,ldcol)
+      nodessnp <- primary_ref_wtgwaslocfin2 %>% select(rsid,poslog10p,ldcol)
       colnames(nodessnp) <- c("id","poslog10p","color.background")
       nodessnp$size <- abs(nodessnp$poslog10p)
       nodessnp$title=paste0(nodessnp$id,", -log10(p)=",round(abs(nodessnp$poslog10p),2))
@@ -741,12 +789,12 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     output$Tmetamirror <- renderPlotly({
       
       # select significant and known genes to plot
-      dgntblplt <- dgntbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
+      primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
       
       
       # define y limits and nudges for plotting
       yhigh <- max(locds()$log10pval)+0.25*max(locds()$log10pval)
-      ylow <- min(-dgntblplt$log10pvalmeta,metathresh)+0.15*min(-dgntblplt$log10pvalmeta,metathresh)
+      ylow <- min(-primary_ref_tblplt$log10pvalmeta,metathresh)+0.15*min(-primary_ref_tblplt$log10pvalmeta,metathresh)
       nudgeval <- 0.05*max(abs(yhigh))
       nudgevalg <- 0.05*ylow
       
@@ -759,7 +807,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       
       # TWAS plot
-      p <- ggplotly(ggplot(data=dgntblplt, aes(x=round(genemid/1000000,4), y=log10pval, color=as.factor(kngene))) +
+      p <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=round(genemid/1000000,4), y=log10pval, color=as.factor(kngene))) +
                       geom_point(pch=15) +
                       geom_segment(aes(x = genestartMB, y = log10pval, xend = genestopMB, yend = log10pval,
                                        color=as.factor(kngene)), size=2) +
@@ -780,7 +828,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                         legend = list(orientation='h', x=0, y=1))
       
       # Meta-analysis plot
-      m <- ggplotly(ggplot(data=dgntblplt, aes(x=round(genemid/1000000,4), y=-log10pvalmeta, color=as.factor(kngene))) +
+      m <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=round(genemid/1000000,4), y=-log10pvalmeta, color=as.factor(kngene))) +
                       geom_point(pch=15) +
                       geom_segment(aes(x = genestartMB, y = -log10pvalmeta, xend = genestopMB, yend = -log10pvalmeta,
                                        color=as.factor(kngene)), size=2) +
@@ -812,11 +860,11 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     
     
-    # comparison of TWAS DGN results with results from other reference panels
+    # comparison of TWAS primary_ref results with results from other reference panels
     output$CompRefGWB <- renderPlotly({
       
-      # select DGN results
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      # select primary_ref results
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
       locchr <- unique(locds$chr)
@@ -826,7 +874,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       
       # select reference panel specific results
-      dgntbl <- dgnds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
                                    is.na(HLARegion) & is.na(MHCRegion)) %>%
         select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
       
@@ -849,31 +897,31 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       #####################
       
       
-      # merge secondary reference panel data sets with DGN
-      dgngwb <- merge(dgntbl,locgwb, by=c("genename","chr","phenoname"), all = T)
-      dgngwb$inboth <- ifelse(complete.cases(dgngwb$log10pval.x,dgngwb$log10pval.y),"In Both","Not in Both")
+      # merge secondary reference panel data sets with primary_ref
+      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
       
-      dgngtl <- merge(dgntbl,locgtl, by=c("genename","chr","phenoname"), all = T)
-      dgngtl$inboth <- ifelse(complete.cases(dgngtl$log10pval.x,dgngtl$log10pval.y),"In Both","Not in Both")
+      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
       
-      dgnmsa <- merge(dgntbl,locmsa, by=c("genename","chr","phenoname"), all = T)
-      dgnmsa$inboth <- ifelse(complete.cases(dgnmsa$log10pval.x,dgnmsa$log10pval.y),"In Both","Not in Both")
+      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
       
       
       #####################
       
       
       # set y limit values for each plot
-      yhighdgn <- max(dgngwb$log10pval.x, na.rm = T)+0.15*max(dgngwb$log10pval.x, na.rm = T)
-      nudgevaldgn <- 0.05*yhighdgn
+      yhighprimary_ref_ <- max(primary_ref_gwb$log10pval.x, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.x, na.rm = T)
+      nudgevalprimary_ref_ <- 0.05*yhighprimary_ref_
       
-      yhighgtl <- max(dgngtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(dgngtl$log10pval.y,pthreshgtl, na.rm = T)
+      yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)
       nudgevalgtl <- 0.05*yhighgtl
       
-      yhighgwb <- max(dgngwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(dgngwb$log10pval.y,pthreshgwb, na.rm = T)
+      yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)
       nudgevalgwb <- 0.05*yhighgwb
       
-      yhighmsa <- max(dgnmsa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(dgnmsa$log10pval.y,pthreshmsa, na.rm = T)
+      yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)
       nudgevalmsa <- 0.05*yhighmsa
       
       
@@ -886,22 +934,22 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       ####################
       
       # plot info for GWB
-      atop <- ggplotly(ggplot(data=dgngwb, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
+      atop <- ggplotly(ggplot(data=primary_ref_gwb, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
                          geom_point(pch=15) +
                          geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), yend=log10pval.x), size=2) +
-                         geom_text(aes(label=genename), nudge_y = nudgevaldgn) +
+                         geom_text(aes(label=genename), nudge_y = nudgevalprimary_ref_) +
                          geom_hline(aes(yintercept=pthresh), lty=2, color='red') +
                          xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
-                         ylim(0,yhighdgn) +
+                         ylim(0,yhighprimary_ref_) +
                          theme_bw() +
                          theme(legend.position = 'top', legend.title = element_blank()) +
-                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevaldgn, color='red',
-                                  label=paste0("DGN TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
+                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, color='red',
+                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
                          
                          colScale
       )
       
-      atop <- atop %>% plotly::layout(yaxis = list(title = ' DGN TWAS -log10(p)'),
+      atop <- atop %>% plotly::layout(yaxis = list(title = 'Primary ref TWAS -log10(p)'),
                               xaxis = list(range=c(round(xlow/1000000,4),round(xhigh/1000000,4))),
                               annotations=list(x = 0.5 , y = 1.1, text = "(a) DGN vs. GWB", showarrow = F, 
                                                xref='paper', yref='paper',xanchor='center'),
@@ -911,7 +959,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       #####
       
-      abottom <- ggplotly(ggplot(data=dgngwb, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
+      abottom <- ggplotly(ggplot(data=primary_ref_gwb, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
                             geom_hline(aes(yintercept=-pthreshgwb), lty=2, color='red') +
                             geom_point(pch=15) +
                             geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
@@ -938,8 +986,8 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     output$CompRefGTL <- renderPlotly({
       
-      # select DGN results
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      # select primary_ref results
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
       locchr <- unique(locds$chr)
@@ -949,7 +997,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       
       # select reference panel specific results
-      dgntbl <- dgnds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
                                    is.na(HLARegion) & is.na(MHCRegion)) %>%
         select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
       
@@ -973,30 +1021,30 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       
       # merge secondary reference panel data sets with DGN
-      dgngwb <- merge(dgntbl,locgwb, by=c("genename","chr","phenoname"), all = T)
-      dgngwb$inboth <- ifelse(complete.cases(dgngwb$log10pval.x,dgngwb$log10pval.y),"In Both","Not in Both")
+      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
       
-      dgngtl <- merge(dgntbl,locgtl, by=c("genename","chr","phenoname"), all = T)
-      dgngtl$inboth <- ifelse(complete.cases(dgngtl$log10pval.x,dgngtl$log10pval.y),"In Both","Not in Both")
+      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
       
-      dgnmsa <- merge(dgntbl,locmsa, by=c("genename","chr","phenoname"), all = T)
-      dgnmsa$inboth <- ifelse(complete.cases(dgnmsa$log10pval.x,dgnmsa$log10pval.y),"In Both","Not in Both")
+      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
       
       
       #####################
       
       
       # set y limit values for each plot
-      yhighdgn <- max(dgngwb$log10pval.x, na.rm = T)+0.15*max(dgngwb$log10pval.x, na.rm = T)
-      nudgevaldgn <- 0.05*yhighdgn
+      yhighprimary_ref_ <- max(primary_ref_gwb$log10pval.x, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.x, na.rm = T)
+      nudgevalprimary_ref_ <- 0.05*yhighprimary_ref_
       
-      yhighgtl <- max(dgngtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(dgngtl$log10pval.y,pthreshgtl, na.rm = T)
+      yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)
       nudgevalgtl <- 0.05*yhighgtl
       
-      yhighgwb <- max(dgngwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(dgngwb$log10pval.y,pthreshgwb, na.rm = T)
+      yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)
       nudgevalgwb <- 0.05*yhighgwb
       
-      yhighmsa <- max(dgnmsa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(dgnmsa$log10pval.y,pthreshmsa, na.rm = T)
+      yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)
       nudgevalmsa <- 0.05*yhighmsa
       
       
@@ -1009,17 +1057,17 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       ####################
       
       # plot info for GTL
-      btop <- ggplotly(ggplot(data=dgngtl, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
+      btop <- ggplotly(ggplot(data=primary_ref_gtl, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
                          geom_point(pch=15) +
                          geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), yend=log10pval.x), size=2) +
-                         geom_text(aes(label=genename), nudge_y = nudgevaldgn) +
+                         geom_text(aes(label=genename), nudge_y = nudgevalprimary_ref_) +
                          geom_hline(aes(yintercept=pthresh), lty=2, color='red') +
                          xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
-                         ylim(0,yhighdgn) +
+                         ylim(0,yhighprimary_ref_) +
                          theme_bw() +
                          theme(legend.position = 'top', legend.title = element_blank()) +
-                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevaldgn, color='red',
-                                  label=paste0("DGN TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
+                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, color='red',
+                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
                          colScale
       )
       
@@ -1032,7 +1080,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       #####
       
-      bbottom <- ggplotly(ggplot(data=dgngtl, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
+      bbottom <- ggplotly(ggplot(data=primary_ref_gtl, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
                             geom_hline(aes(yintercept=-pthreshgtl), lty=2, color='red') +
                             geom_point(pch=15) +
                             geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
@@ -1041,7 +1089,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                             ylim(-yhighgtl,0) +
                             theme_bw() +
                             theme(legend.position = 'top', legend.title = element_blank()) +
-                            annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=-pthreshgtl-nudgevaldgn, color='red',
+                            annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=-pthreshgtl-nudgevalprimary_ref_, color='red',
                                      label=paste0("GTL TWAS p-value: ", formatC(10^-(pthreshgtl), format = "e", digits = 2)),size=4) +
                             
                             colScale
@@ -1061,8 +1109,8 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     output$CompRefMSA <- renderPlotly({
       
-      # select DGN results
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      # select primary_ref results
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
       locchr <- unique(locds$chr)
@@ -1072,7 +1120,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       
       # select reference panel specific results
-      dgntbl <- dgnds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
                                    is.na(HLARegion) & is.na(MHCRegion)) %>%
         select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
       
@@ -1095,31 +1143,31 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       #####################
       
       
-      # merge secondary reference panel data sets with DGN
-      dgngwb <- merge(dgntbl,locgwb, by=c("genename","chr","phenoname"), all = T)
-      dgngwb$inboth <- ifelse(complete.cases(dgngwb$log10pval.x,dgngwb$log10pval.y),"In Both","Not in Both")
+      # merge secondary reference panel data sets with primary ref
+      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
       
-      dgngtl <- merge(dgntbl,locgtl, by=c("genename","chr","phenoname"), all = T)
-      dgngtl$inboth <- ifelse(complete.cases(dgngtl$log10pval.x,dgngtl$log10pval.y),"In Both","Not in Both")
+      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
       
-      dgnmsa <- merge(dgntbl,locmsa, by=c("genename","chr","phenoname"), all = T)
-      dgnmsa$inboth <- ifelse(complete.cases(dgnmsa$log10pval.x,dgnmsa$log10pval.y),"In Both","Not in Both")
+      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
       
       
       #####################
       
       
       # set y limit values for each plot
-      yhighdgn <- max(dgngwb$log10pval.x, na.rm = T)+0.15*max(dgngwb$log10pval.x, na.rm = T)
-      nudgevaldgn <- 0.05*yhighdgn
+      yhighprimary_ref_ <- max(primary_ref_gwb$log10pval.x, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.x, na.rm = T)
+      nudgevalprimary_ref_ <- 0.05*yhighprimary_ref_
       
-      yhighgtl <- max(dgngtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(dgngtl$log10pval.y,pthreshgtl, na.rm = T)
+      yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)
       nudgevalgtl <- 0.05*yhighgtl
       
-      yhighgwb <- max(dgngwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(dgngwb$log10pval.y,pthreshgwb, na.rm = T)
+      yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)
       nudgevalgwb <- 0.05*yhighgwb
       
-      yhighmsa <- max(dgnmsa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(dgnmsa$log10pval.y,pthreshmsa, na.rm = T)
+      yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)
       nudgevalmsa <- 0.05*yhighmsa
       
       
@@ -1132,17 +1180,17 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       ####################
       
       # plot info for MSA
-      ctop <- ggplotly(ggplot(data=dgnmsa, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
+      ctop <- ggplotly(ggplot(data=primary_ref_msa, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
                          geom_point(pch=15) +
                          geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), yend=log10pval.x), size=2) +
-                         geom_text(aes(label=genename), nudge_y = nudgevaldgn) +
+                         geom_text(aes(label=genename), nudge_y = nudgevalprimary_ref_) +
                          geom_hline(aes(yintercept=pthresh), lty=2, color='red') +
                          xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
-                         ylim(0,yhighdgn) +
+                         ylim(0,yhighprimary_ref_) +
                          theme_bw() +
                          theme(legend.position = 'top', legend.title = element_blank()) +
-                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevaldgn, color='red',
-                                  label=paste0("DGN TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
+                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, color='red',
+                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
                          colScale
       )
       
@@ -1155,7 +1203,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       
       #####
       
-      cbottom <- ggplotly(ggplot(data=dgnmsa, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
+      cbottom <- ggplotly(ggplot(data=primary_ref_msa, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
                             geom_hline(aes(yintercept=-pthreshmsa), lty=2, color='red') +
                             geom_point(pch=15) +
                             geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
@@ -1163,7 +1211,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
                             xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
                             theme_bw() +
                             ylim(-yhighmsa-2,0) +
-                            annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=-pthreshmsa-nudgevaldgn, color='red',
+                            annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=-pthreshmsa-nudgevalprimary_ref_, color='red',
                                      label=paste0("MSA TWAS p-value: ", formatC(10^-(pthreshmsa), format = "e", digits = 2)),size=4) +
                             
                             colScale
@@ -1188,24 +1236,24 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     
     # TWAS results table with separate tabs for each reference panel
-    output$DGNtbl <- DT::renderDataTable({
+    output$primary_ref_tbl <- DT::renderDataTable({
       
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
       locpheno <- unique(locds$phenoname) #locus phenotype
       locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      dgntbl <- dgnds %>% filter(genestart>=xlow & genestop <=xhigh & phenoname==locpheno & chr==locchr) %>%
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop <=xhigh & phenoname==locpheno & chr==locchr) %>%
         select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
                weightsnp, cohortsnp, SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(dgntbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+      colnames(primary_ref_tbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
                             "# model SNPs","# SNPs used","TWAS significant",
                             "HLA gene","MHC region","1 SNP model")
       
       # print data table
-      datatable(dgntbl, rownames=F, options = list(
+      datatable(primary_ref_tbl, rownames=F, options = list(
         order = list(list(7, 'asc')))) %>% formatStyle(
           "TWAS significant", target = "row",
           backgroundColor = styleEqual(c(1), c('lightgreen'))
@@ -1227,7 +1275,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     output$GTLtbl <- DT::renderDataTable({
       
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
       locpheno <- unique(locds$phenoname) #locus phenotype
@@ -1264,7 +1312,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     output$GWBtbl <- DT::renderDataTable({
       
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
       locpheno <- unique(locds$phenoname) #locus phenotype
@@ -1301,7 +1349,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     output$MSAtbl <- DT::renderDataTable({
       
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
       locpheno <- unique(locds$phenoname) #locus phenotype
@@ -1337,19 +1385,19 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     
     # TWAS other traits results table with separate tabs for each reference panel
-    output$DGNtbltrt <- DT::renderDataTable({
+    output$primary_ref_tbltrt <- DT::renderDataTable({
       
-      # select dgn all genes from other trait categories at locus
-      dgntbl <- filter(dgnds, genestart>=xlow() & genestop<=xhigh() & phenoname!=locpheno() 
+      # select primary_ref_ all genes from other trait categories at locus
+      primary_ref_tbl <- filter(primary_ref_ds, genestart>=xlow() & genestop<=xhigh() & phenoname!=locpheno() 
                        & chr==locchr() & phenocat==locphcat()) %>%
         select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
                SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(dgntbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+      colnames(primary_ref_tbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
                             "# model SNPs","#SNPs used","TWAS significant",
                             "HLA gene","MHC region","1 SNP model")
       
       # print data table
-      datatable(dgntbl, rownames=F, options = list(
+      datatable(primary_ref_tbl, rownames=F, options = list(
         order = list(list(7, 'asc')))) %>% formatStyle(
           "TWAS significant", target = "row",
           backgroundColor = styleEqual(c(1), c('lightgreen'))
@@ -1467,7 +1515,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     # Table of known variants
     output$KnownSNPtbl <- DT::renderDataTable({
-      locds <- dgnds %>% filter(locvar==input$locuslst)
+      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
       locpheno<-unique(locds$phenocat) #locus phenotype category
@@ -1475,7 +1523,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       locchr<- unique(locds$chr) #locus chromosome
       
       if (locpheno=="RBC") {
-        ds=rbcds
+        ds=GWAS_sentinel
       } else if (locpheno=="WBC") {
         ds=wbcds
       } else {
@@ -1495,24 +1543,24 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
       } else {
         
         # select set of TWAS insignificant genes
-        dgntbl <- dgnds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locph & chr==locchr &
+        primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locph & chr==locchr &
                                      SignifGene==0  & is.na(HLARegion) & is.na(MHCRegion)) %>% select(genename)
         
         # indicator for significant TWAS gene pattern 
         phenotbl$X16 <- ifelse(grepl(paste(unique(locds$genename), collapse="|"),phenotbl$Gene),1,0)
         
         # indicator for non-significant TWAS gene pattern
-        phenotbl$X17 <- ifelse(grepl(paste(unique(dgntbl$genename),collapse="|"),phenotbl$Gene),1,0)
+        phenotbl$X17 <- ifelse(grepl(paste(unique(primary_ref_tbl$genename),collapse="|"),phenotbl$Gene),1,0)
         
-        # indicator for gene not predicted in Kaiser
-        phenotbl$notpred <- ifelse(grepl(paste(genes$genename[genes$X0==0],collapse = "|"),phenotbl$Gene),1,0)
-        phenotbl$notdgn <- ifelse(grepl(paste(genes$genename[genes$X0==1],collapse="|"),phenotbl$Gene),1,0)
+        # indicator for gene not predicted in primary tissue
+        phenotbl$notpred <- ifelse(grepl(paste(ref_panel_genes$genename[ref_panel_genes$genestatus==0],collapse = "|"),phenotbl$Gene),1,0)
+        phenotbl$notprimary_ref <- ifelse(grepl(paste(ref_panel_genes$genename[ref_panel_genes$genestatus==1],collapse="|"),phenotbl$Gene),1,0)
         
         phenotbl$chrposall <- paste0(phenotbl$Chr,":",phenotbl$Pos_b37,":",phenotbl$`Effect Allele`,":",phenotbl$`Other Allele`)
         phenotbl$chrposall2 <- paste0(phenotbl$Chr,":",phenotbl$Pos_b37,":",phenotbl$`Other Allele`,":",phenotbl$`Effect Allele`)
         
         # indicator for snps included in GWAS results
-        locgwas <- gwasdsfin %>% filter(Locus==locnum()) %>% select(SNP)
+        locgwas <- cohort_gwas_knownfin %>% filter(Locus==locnum()) %>% select(SNP)
         phenotbl$X19 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall),1,0)
         phenotbl$X20 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall2),1,0)
         
@@ -1539,7 +1587,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
           formatStyle("Gene", "notpred", backgroundColor = styleEqual(
             c(1), c("orange"))
           ) %>%
-          formatStyle("Gene", "notdgn", backgroundColor = styleEqual(
+          formatStyle("Gene", "notprimary_ref", backgroundColor = styleEqual(
             c(1), c("red"))
           )
       }
@@ -1550,7 +1598,7 @@ shinyTWAS <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditi
     
     # Table of known variants
     output$GWASvars <- DT::renderDataTable({
-      locgwas <- gwasdsfin %>% filter(Locus==locnum())
+      locgwas <- cohort_gwas_knownfin %>% filter(Locus==locnum())
       
       # print data table
       datatable(locgwas, #rownames=F, 

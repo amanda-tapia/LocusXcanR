@@ -1,8 +1,18 @@
 ---
-title: "Documentation for ShinyTWAS() R package"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Documentation for ShinyTWAS() R package}
+title: "LocusXcanR: An R Shiny App to Visualize TWAS Results Integrated with Other 'Omics Studies"
+date: "06/08/2020"
+author: "Amanda L. Tapia"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+abstract: |
+  Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
+  lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
+
+vignette: |
+  %\VignetteIndexEntry{LocusXcanR: An R Shiny App to Visualize TWAS Results Integrated with Other 'Omics Studies}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -15,5 +25,56 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(ShinyTWAS)
+library(LocusXcanR)
 ```
+
+# Introduction
+
+Use sections (and sub-sections) to demarcate meaningful steps in the process, e.g. “Preprocessing”, “Quality control”, “Main analysis”, “Plotting results”, “Diagnostics”, etc. You can specify toc: true (and toc_float: true) in the output section of the preamble in order to add a Table of Contents (and make it floating, that is, unfold/fold and follow as the user scrolls down). See the Rmarkdown cheat sheet for instructions on adding options to the preamble.
+Most of the code chunks should be evaluated, it’s ok to add a few eval=FALSE code chunks for demonstration, but vignettes where none of the code chunks are evaluated are not as helpful in my opinion, as the output that a user gets when running the code may differ from what happens in the non-evaluated code chunks, which may even generate errors if they are out-of-date!
+
+```{r, include=FALSE}
+dir <- system.file("extdata", package="LocusXcanR")
+rdir <- system.file("data", package="LocusXcanR")
+
+twas_ds <- read.table(file.path(dir, "twas_ds.txt"), header=T, stringsAsFactors = F)
+load(file.path(rdir,"pred_exp_corr.Rdata"))
+```
+
+# Example Data
+
+##  TWAS results dataset  
+The data set <code>twas_ds</code> requires the following variable names:  
+<ul>
+  <li>Coffee</li>
+  <li>Tea</li>
+  <li>Milk</li>
+</ul>
+Additional variables may also be included in the dataset. These variables will be ignored
+when plotting figures but will be printed in data tables.
+
+Here is an example of <code>twas_ds</code>:
+```{r}
+knitr::kable(twas_ds[1:5,1:10])
+```
+
+## GWAS results dataset
+
+
+## Predicted expression correlation dataset
+Name of correlation matrix object must be saved as capital <code>M</code>.
+
+Here is an example of the <code>M</code> object loaded by the <code>pred_exp_corr</code> parameter.
+```{r}
+knitr::kable(M[1:5,1:5])
+```
+
+
+# Frequently Asked Questions
+
+# Acknowledgements
+list people who helped in writing the software
+
+# References
+list relevant literature
+See the preamble above for how to add a BibTex file (and see Rmarkdown cheat sheet for how to add references to an Rmarkdown file).

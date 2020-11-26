@@ -41,21 +41,33 @@ twas_ds <- read.table(file.path(dir, "twas_ds.txt"), header=T, stringsAsFactors 
 load(file.path(rdir,"pred_exp_corr.Rdata"))
 ```
 
+# LocusXcanR R function
+
+
 # Example Data
 
 ##  TWAS results dataset  
-The data set <code>twas_ds</code> requires the following variable names:  
+The data set <code>twas_ds</code> requires the following variables:  
 <ul>
-  <li>Coffee</li>
-  <li>Tea</li>
-  <li>Milk</li>
+  <li><code>tissue</code>:</li>
+  <li><code>locus</code>: integer, value indicating the locus number</li>
+  <li><code>locstart</code>: integer, value indicating the genomic start position of the locus</li>
+  <li><code>locstop</code>: integer, value indicating the genomic stop position of the locus</li>
+  <li><code>chr</code>: integer, chromosome number</li>
+  <li><code>index</code>: character, the index (most significant) gene within the locus</li>
+  <li><code>pheno</code>:</li>
+  <li><code>genestart</code>:</li>
+  <li><code>genestop</code>:</li>
+  <li><code>p</code>:</li>
+  <li><code>genename</code>:</li>
 </ul>
-Additional variables may also be included in the dataset. These variables will be ignored
+
+Additional variables may also be included in the dataset. Any additional variables will be ignored
 when plotting figures but will be printed in data tables.
 
 Here is an example of <code>twas_ds</code>:
 ```{r}
-knitr::kable(twas_ds[1:5,1:10])
+knitr::kable(twas_ds[1:5,])
 ```
 
 ## GWAS results dataset

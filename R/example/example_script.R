@@ -9,28 +9,32 @@ headernote <- "All genomic positions are from GRCh37.<p>TWAS results for 10 trai
 # example methods
 method <- source("R/example/methods.R")
 
+
 # call the function
 LocusXcanR(
          #twas_result = paste0(dsdir,"KaiserAnalysisDS.txt"),
-         twas_result = "R/example/twas_ds.txt",
+         twas_result = "inst/extdata/twas_ds.txt",
          
          #known_variants = paste0(dsdir,"RBC_knownsnp.match.txt"),
-         known_variants = "R/example/gwas_sentinel.txt",
+         known_variants = "inst/extdata/gwas_sentinel.txt",
          
          #weight_tbl = paste0(dsdir,"DGN-weights.txt"),
-         weight_tbl = "R/example/weight_tbl.txt",
+         weight_tbl = "inst/extdata/weight_tbl.txt",
          
-         
-         known_gwas = paste0(dsdir,"gwaspval_DGN.txt"),
-         
+         #known_gwas = paste0(dsdir,"gwaspval_DGN.txt"),
+         known_gwas = "inst/extdata/known_gwas.txt",
          
          #db_genes = paste0(dsdir,"DGN_genes_Kaiser.txt"),
-         db_genes = "R/example/db_genes.txt",
+         db_genes = "inst/extdata/db_genes.txt",
 
+         #all_gwas = paste0(dsdir,"kaiser.gwas_locusALL.txt"),
+         all_gwas = "inst/extdata/all_gwas.txt",
          
-         all_gwas = paste0(dsdir,"kaiser.gwas_locusALL.txt"),
-         pred_exp_corr = paste0(dsdir,"DGN_expression_dec_cor.Rdata"),
-         ld_gwas = paste0(dsdir,"locusLD_topsub.ld"),
+         #pred_exp_corr = paste0(dsdir,"DGN_expression_dec_cor.Rdata"),
+         pred_exp_corr = "data/pred_exp_corr.Rdata",
+         
+         #ld_gwas = paste0(dsdir,"locusLD_topsub.ld"),
+         ld_gwas = "inst/extdata/ld_gwas.txt",
          
          
          study_name = "Genetic Epidemiology Research on Adult Health and Aging (GERA) Europeans",

@@ -1,17 +1,46 @@
-#' TWAS results integrated with other 'omics studies
-#' R Shiny app to pull in relevant data for TWAS results interpretation
+#' LocusXcanR: An R Shiny App to Visualize TWAS Results Integrated with Other 'Omics Studies
+#' 
+#' \code{LocusXcanR} allows users to import TWAS and GWAS results (and additional important details) 
+#' in order to visualize them together in a single web page
+#' application via R Shiny and facilitates TWAS results interpretation in context.
+#' 
+#' This is the beginning of the details section
+#' 
+#' \code{twas_result} requires the following column names: 
+#' 
+#' \code{weight_tbl} requires the following column names: 
+#' 
+#' \code{known_variants} requires the following column names: 
+#' 
+#' \code{pred_exp_corr} requires the following column names: 
+#' 
+#' Created by: Amanda L. Tapia, Date: 06/08/2020
 #'
-#' created by: Amanda L. Tapia, Date: 06/08/2020
-#'
-#' @param twas_result File path to TWAS results, as a text string (required)
-#' @param weight_tbl File path to TWAS weights database, as a text string (required)
-#' @param known_variants File path to known GWAS variants, as a text string (required)
-#' @param pred_exp_corr File path to predicted expression correlation, as a text string (required)
-#' @param study_name A text string of the name of the study (optional, missing name is default)
-#' @param conditional_present TRUE if conditional analysis results are available, FALSE if not (FALSE is default)
-#' @param multiple_tissues TRUE if TWAS results are available from more than one tissue, FALSE if TWAS results are only available from a single tissue or a multi-tissue analysis (FALSE is default)
-#' @param known_gwas File path to study GWAS data matching known variants
-#' @export
+#' @param twas_result character, file path to TWAS results (required). See Details for required column names.
+#' @param weight_tbl character, file path to TWAS weights database (required). See Details for required column names.
+#' @param known_variants character, file path to known GWAS variants (required). See Details for required column names.
+#' @param pred_exp_corr character, file path to predicted expression correlation (required). See Details for required column names.
+#' @param study_name character, the name of the study (optional, default is missing)
+#' @param conditional_present logical, TRUE if conditional analysis results are available for plotting, FALSE otherwise (default is FALSE)
+#' @param multiple_tissues logical, TRUE if TWAS results are available from more than one tissue, FALSE if TWAS results are only available from a single tissue or a multi-tissue analysis (default is FALSE)
+#' @param known_gwas character, file path to study GWAS data matching known variants
+#' @param db_genes character, file path to a list of genes in the database
+#' @param all_gwas character, file path to study GWAS data
+#' @param ld_gwas character, file path to the LD among study variants or an LD reference panel
+#' @param ref_expr_name character, name of the reference expression data set used in the analysis (optional, default is missing)
+#' @param head_details character, any additional header details to be included in the app (optional, default is no details). HTML formatting commands may be used.
+#' @param method_details character, detailed methods section (optional, default is no details). HTLM formatting commands may be used.
+#' @param primary_tissue character, if multiple tissues are available for analysis, list the name of the primary tissue
+#' @param meta_present logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE)
+#' 
+#' @return An R Shiny application
+#' 
+#' @examples
+#' 
+#' This is an example of only the required stuff
+#' 
+#' This is an example with more stuff
+#' 
 #' @importFrom magrittr "%>%"
 #' @importFrom tidyr "separate"
 #' @importFrom dplyr "filter","select","distinct"
@@ -22,19 +51,12 @@
 #' @importFrom DT "formatStyle","styleEqual","datatable"
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","geom_point","geom_hline","theme_bw","geom_segment","annotate"
 #' @importFrom utils "read.table"
-#
-#' @param db_genes File path to a list of genes in the database
-#' @param all_gwas File path to study GWAS data
-#' @param ld_gwas File path to the LD among study variants or an LD reference panel
-#' @param ref_expr_name Name of the reference expression data set used in the analysis (optional, missing name is default)
-#' @param head_details Any additional header details to be included in the app (optional, no details is default). HTML formatting commands may be used.
-#' @param method_details Detailed methods section (optional, no details is default). HTLM formatting commands may be used.
-#' @param primary_tissue If multiple tissues are present, list the name of the primary tissue
-#' @param meta_present Results from TWAS meta-analysis present for comparison (optional, FALSE is default)
+#'
 #
 ####################################################################
 
 
+#' @export
 
 LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
                       known_variants,known_gwas,db_genes,all_gwas,ld_gwas,ref_expr_name="",head_details="",method_details="",

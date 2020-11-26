@@ -56,6 +56,17 @@
 ####################################################################
 
 
+
+####################################################################
+############## TO DO ###############################################
+####################################################################
+
+# include a parameter for meta-analysis p-value threshold
+# include an optional parameter for marginal TWAS p-value threshold
+
+####################################################################
+
+
 #' @export
 
 LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
@@ -63,7 +74,17 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                       primary_tissue,meta_present=FALSE){
   
   # load analysis dataset
-  twas_ds <- data.table::fread(twas_result,stringsAsFactors = F, header=T, sep = '\t')
+  twas_ds <- data.table::fread(twas_result,stringsAsFactors = F, header=T)
+  
+  # select variables for table displays
+  #origvars <- names(twas_ds)
+  #origvarstbl <- origvars[!origvars %in% c("locus2","locstart","locstop")]
+  
+  # define additional variables for plotting
+  twas_ds$genestartMB <- round(twas_ds$genestart/1000000,4)
+  twas_ds$genestopMB <- round(twas_ds$genestop/1000000,4)
+  twas_ds$genemid <- (twas_ds$genestart+twas_ds$genestop)/2
+  twas_ds$genemidMB <- round(twas_ds$genemid/1000000,4)
   
   
   # load known variants dataset
@@ -116,9 +137,15 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
   primary_ref_ds$locvar <- paste0("Locus ",primary_ref_ds$locus2," : ", "chr ",primary_ref_ds$chr," : ",primary_ref_ds$locstart,", ",
                          primary_ref_ds$locstop," : ",primary_ref_ds$index," : ",primary_ref_ds$pheno
                         )
-  primary_ref_ds$genestartMB <- round(primary_ref_ds$genestart/1000000,4)
-  primary_ref_ds$genestopMB <- round(primary_ref_ds$genestop/1000000,4)
-  primary_ref_ds$log10pvalmeta <- -log10(primary_ref_ds$P_value_meta)
+
+  if (meta_present==TRUE){
+    primary_ref_ds$log10pvalmeta <- -log10(primary_ref_ds$p_meta)
+  }
+  
+  primary_ref_ds$log10pval <- (log10(primary_ref_ds$p))*(-1)
+  
+  
+  #select(-locus2,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-locvar,-log10pvalmeta,-log10pval)
   
   
   sortedprimary_ref_ <- primary_ref_ds[
@@ -267,12 +294,43 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                           "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. ",
                           HTML('<span style="background-color:lightgreen"> Significant gene-trait associations highlighted in green. </span> <span style="background-color:tomato"> HLA genes / MHC regions / single SNP models highlighted in red. </span>'),
                           " MHC region is defined as GRCh37; chr6:28,477,797-33,448,354. Single SNP model indicates that the predictive expression model for the gene contained only a single SNP.",
-                          tabsetPanel(
-                            id = 'twasresult',
-                            tabPanel("DGN", DT::dataTableOutput("primary_ref_tbl")),
-                            tabPanel("GWB", DT::dataTableOutput("GWBtbl")),
-                            tabPanel("GTL", DT::dataTableOutput("GTLtbl")),
-                            tabPanel("MSA", DT::dataTableOutput("MSAtbl"))
+                          
+                          fluidRow(
+                            
+                            #column(3,
+                              # conditionalPanel(
+                              #   'input.twasresult === "DGN"',
+                              #   checkboxGroupInput("show_vars1", "Select DGN columns to view:",
+                              #                      origvars, selected = origvars)
+                              # ),
+                              # conditionalPanel(
+                              #   'input.twasresult === "GWB"',
+                              #   checkboxGroupInput("show_vars2", "Select GWB columns to view:",
+                              #                      names(twas_ds), selected = names(twas_ds))
+                              # ),
+                              # conditionalPanel(
+                              #   'input.twasresult === "GTL"',
+                              #   checkboxGroupInput("show_vars3", "Select GTL columns to view:",
+                              #                      names(twas_ds), selected = names(twas_ds))
+                              # ),
+                              # conditionalPanel(
+                              #   'input.twasresult === "MSA"',
+                              #   checkboxGroupInput("show_vars4", "Select MSA columns to view:",
+                              #                      names(twas_ds), selected = names(twas_ds))
+                              # )
+                            #  checkboxGroupInput("show_vars", "Select columns to view:",
+                            #                     names(primary_ref_ds), selected = names(primary_ref_ds))
+                            #),
+                            
+                            column(12,
+                              tabsetPanel(
+                                id = 'twasresult',
+                                tabPanel("DGN", DT::dataTableOutput("primary_ref_DT")),
+                                tabPanel("GWB", DT::dataTableOutput("GWBtbl")),
+                                tabPanel("GTL", DT::dataTableOutput("GTLtbl")),
+                                tabPanel("MSA", DT::dataTableOutput("MSAtbl"))
+                              )
+                            )
                           ),
                           br(),
                           hr(),
@@ -416,18 +474,8 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     output$TWASmirror <- renderPlotly({
       locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       yhigh <- max(locds$log10pval)+0.25*max(locds$log10pval)
-      pthresh <- -log10(0.05/(nrow(primary_ref_ds)))
-      locchr <- unique(locds$chr)
 
-      # select known variants at locus
-      if (locphcat()=="RBC") {
-        ds=GWAS_sentinel
-      } else if (locphcat()=="WBC") {
-        ds=wbcds
-      } else {
-        ds=pltds
-      }
-      
+
       # select significant and known genes to plot
       primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
       
@@ -494,10 +542,10 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       }
       
       # TWAS plot
-      p <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=round(genemid/1000000,4), y=pvalplt, color=as.factor(kngene))) + 
+      p <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=genemidMB, y=pvalplt, color=as.factor(kngene))) + 
                       geom_point(pch=15) +
                       geom_segment(aes(x = genestartMB, y = pvalplt, xend = genestopMB, yend = pvalplt, color=as.factor(kngene)), size=2) +
-                      geom_text(aes(x=round(genemid/1000000,4),y=pvalplt,label=genename,color=as.factor(kngene)), nudge_y = nudgeval, size=4) +
+                      geom_text(aes(x=genemidMB,y=pvalplt,label=genename,color=as.factor(kngene)), nudge_y = nudgeval, size=4) +
                       geom_hline(aes(yintercept=pthresh), lty=2, color="red") +
                       xlim(xlowMB(),xhighMB()) + ylim(0,yhigh) +
                       annotate(geom="text",x=round((xlow()+270000)/1000000,4), y=pthresh-nudgeval, color='red',
@@ -1260,37 +1308,48 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     
     # TWAS results table with separate tabs for each reference panel
-    output$primary_ref_tbl <- DT::renderDataTable({
+    output$primary_ref_DT <- DT::renderDataTable({
       
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      xhigh <- max(locds$genestop)+1000000
-      xlow <- max(0,min(locds$genestart)-1000000)
-      locpheno <- unique(locds$phenoname) #locus phenotype
-      locchr<- unique(locds$chr) #locus chromosome
+      #locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      #xhigh <- max(locds$genestop)+1000000
+      #xlow <- max(0,min(locds$genestart)-1000000)
+      #locpheno <- unique(locds$phenoname) #locus phenotype
+      #locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop <=xhigh & phenoname==locpheno & chr==locchr) %>%
-        select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
-               weightsnp, cohortsnp, SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(primary_ref_tbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
-                            "# model SNPs","# SNPs used","TWAS significant",
-                            "HLA gene","MHC region","1 SNP model")
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
+        #select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
+        #       weightsnp, cohortsnp, SignifGene,HLARegion,MHCRegion,SingleSNP)
+        select(-locus2,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-locvar,-log10pvalmeta,-log10pval)
+      #colnames(primary_ref_tbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+      #                      "# model SNPs","# SNPs used","TWAS significant",
+      #                      "HLA gene","MHC region","1 SNP model")
       
       # print data table
-      datatable(primary_ref_tbl, rownames=F, options = list(
-        order = list(list(7, 'asc')))) %>% formatStyle(
-          "TWAS significant", target = "row",
-          backgroundColor = styleEqual(c(1), c('lightgreen'))
-        ) %>% formatStyle(
-          "HLA gene", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "MHC region", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "1 SNP model", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )
+      ## commenting this out and testing another
+      # datatable(primary_ref_tbl, rownames=F, options = list(
+      #   order = list(list(7, 'asc')))) %>% formatStyle(
+      #     "TWAS significant", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('lightgreen'))
+      #   ) %>% formatStyle(
+      #     "HLA gene", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   ) %>% formatStyle(
+      #     "MHC region", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   ) %>% formatStyle(
+      #     "1 SNP model", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   )
+      
+      #primary_ref_tblfin <- primary_ref_tbl[,c(input$show_vars)]
+      datatable(primary_ref_tbl, rownames=F)
+      #primary_ref_tblplt <- primary_ref_tbl[, input$show_vars]
+      #datatable(primary_ref_tblfin, rownames=F)
+      #df <- as.data.frame(primary_ref_tbl)
+      #DT::datatable(df)
+      #DT::datatable(primary_ref_tbl())
+      #DT::datatable(primary_ref_tbl[,input$show_vars, drop=FALSE])
     })
     
     

@@ -42,9 +42,13 @@ load(file.path(rdir,"pred_exp_corr.Rdata"))
 ```
 
 # LocusXcanR R function
+LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
+                      known_variants,known_gwas,db_genes,all_gwas,ld_gwas,ref_expr_name="",head_details="",method_details="",
+                      primary_tissue,meta_present=FALSE){}
 
 
 # Example Data
+
 
 ##  TWAS results dataset  
 The data set <code>twas_ds</code> requires the following variables:  
@@ -72,6 +76,10 @@ knitr::kable(twas_ds[1:5,])
 
 ## GWAS results dataset
 
+Here is an example of <code>known_variants</code>:
+```{r}
+knitr::kable(twas_ds[1:5,])
+```
 
 ## Predicted expression correlation dataset
 Name of correlation matrix object must be saved as capital <code>M</code>.

@@ -44,4 +44,5 @@ LocusXcanR(
          conditional_present = T,
          primary_tissue = "DGN",
          meta_present = T,
-         multiple_tissues = T)
+         multiple_tissues = T,
+         meta_thresh=2.09e-04)

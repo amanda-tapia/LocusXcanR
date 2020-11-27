@@ -32,6 +32,7 @@
 #' @param method_details character, detailed methods section (optional, default is no details). HTLM formatting commands may be used.
 #' @param primary_tissue character, if multiple tissues are available for analysis, list the name of the primary tissue
 #' @param meta_present logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE)
+#' @param meta_thresh numeric, p-value threshold for meta-analysis results (required if meta_present=TRUE)
 #' 
 #' @return An R Shiny application
 #' 
@@ -61,7 +62,6 @@
 ############## TO DO ###############################################
 ####################################################################
 
-# include a parameter for meta-analysis p-value threshold
 # include an optional parameter for marginal TWAS p-value threshold
 
 ####################################################################
@@ -71,7 +71,7 @@
 
 LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
                       known_variants,known_gwas,db_genes,all_gwas,ld_gwas,ref_expr_name="",head_details="",method_details="",
-                      primary_tissue,meta_present=FALSE){
+                      primary_tissue,meta_present=FALSE,meta_thresh){
   
   # load analysis dataset
   twas_ds <- data.table::fread(twas_result,stringsAsFactors = F, header=T)
@@ -85,6 +85,17 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
   twas_ds$genestopMB <- round(twas_ds$genestop/1000000,4)
   twas_ds$genemid <- (twas_ds$genestart+twas_ds$genestop)/2
   twas_ds$genemidMB <- round(twas_ds$genemid/1000000,4)
+  twas_ds$log10pval <- (log10(twas_ds$p))*(-1)
+  
+  # calculate conditional p-value when conditional analysis results present
+  # if (conditional_present==TRUE){
+  #   if(is.na(twas_ds$p_conditional)==TRUE){
+  #     twas_ds$p_final=twas_ds$p
+  #   } else twas_ds$p_final=twas$p_conditional
+  # }
+  twas_ds$p_final[is.na(twas_ds$p_conditional)] <- twas_ds$p[is.na(twas_ds$p_conditional)]
+  twas_ds$p_final[!is.na(twas_ds$p_conditional)] <- twas_ds$p_conditional[!is.na(twas_ds$p_conditional)]
+  
   
   
   # load known variants dataset
@@ -134,7 +145,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
   # filter analysis dataset by primary tissue if multiple tissues present
   primary_ref_ds <- twas_ds %>% filter(tissue==primary_tissue)
   
-  primary_ref_ds$locvar <- paste0("Locus ",primary_ref_ds$locus2," : ", "chr ",primary_ref_ds$chr," : ",primary_ref_ds$locstart,", ",
+  primary_ref_ds$locvar <- paste0("Locus ",primary_ref_ds$locus," : ", "chr ",primary_ref_ds$chr," : ",primary_ref_ds$locstart,", ",
                          primary_ref_ds$locstop," : ",primary_ref_ds$index," : ",primary_ref_ds$pheno
                         )
 
@@ -142,31 +153,33 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     primary_ref_ds$log10pvalmeta <- -log10(primary_ref_ds$p_meta)
   }
   
-  primary_ref_ds$log10pval <- (log10(primary_ref_ds$p))*(-1)
-  
-  
   #select(-locus2,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-locvar,-log10pvalmeta,-log10pval)
   
   
   sortedprimary_ref_ <- primary_ref_ds[
-    order( primary_ref_ds$locus2, primary_ref_ds$genestart, primary_ref_ds$genestop, primary_ref_ds$pheno ),
+    order( primary_ref_ds$locus, primary_ref_ds$genestart, primary_ref_ds$genestop, primary_ref_ds$pheno ),
   ]
   
   # list of unique loci
-  loclist <- sort(unique(primary_ref_ds$locus2[complete.cases(primary_ref_ds$locus2)]))
-  loclistdet <- unique(sortedprimary_ref_$locvar[complete.cases(sortedprimary_ref_$locus2)])
+  loclist <- sort(unique(primary_ref_ds$locus[complete.cases(primary_ref_ds$locus)]))
+  loclistdet <- unique(sortedprimary_ref_$locvar[complete.cases(sortedprimary_ref_$locus)])
   
   
   # p-value threshold for primary reference panel
   pthresh <- -log10(0.05/(nrow(primary_ref_ds)))
   
   # number of significant TWAS genes
-  signifrow <- primary_ref_ds %>% filter(SignifGene==1 & is.na(HLARegion) & is.na(MHCRegion)
-                               & SingleSNP!=1)
-  numsignif <- nrow(signifrow)
+  # signifrow <- primary_ref_ds %>% filter(SignifGene==1 & is.na(HLARegion) & is.na(MHCRegion)
+  #                              & SingleSNP!=1)
+  # numsignif <- nrow(signifrow)
+  # 
+  # # meta-analysis threshold
+  # metathresh <- log10(0.05/numsignif)
   
-  # meta-analysis threshold
-  metathresh <- log10(0.05/numsignif)
+  # meta-analysis strict p-value threshold
+  if (meta_present==TRUE){
+    metathresh=log10(meta_thresh)
+  }
 
 
 
@@ -295,7 +308,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                           HTML('<span style="background-color:lightgreen"> Significant gene-trait associations highlighted in green. </span> <span style="background-color:tomato"> HLA genes / MHC regions / single SNP models highlighted in red. </span>'),
                           " MHC region is defined as GRCh37; chr6:28,477,797-33,448,354. Single SNP model indicates that the predictive expression model for the gene contained only a single SNP.",
                           
-                          fluidRow(
+                          shiny::fluidRow(
                             
                             #column(3,
                               # conditionalPanel(
@@ -322,7 +335,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                             #                     names(primary_ref_ds), selected = names(primary_ref_ds))
                             #),
                             
-                            column(12,
+                            shiny::column(12,
                               tabsetPanel(
                                 id = 'twasresult',
                                 tabPanel("DGN", DT::dataTableOutput("primary_ref_DT")),
@@ -335,19 +348,19 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                           br(),
                           hr(),
                           
-                          h4(strong("Table 2. Overall TWAS results for other traits in the trait category from primary and secondary reference panels within the locus")),
-                          "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. ",
-                          HTML('<span style="background-color:lightgreen">Significant gene-trait associations highlighted in green, </span><span style="background-color:tomato">HLA genes / MHC regions / single SNP models highlighted in red. </span>'),
-                          " MHC region is defined as GRCh37; chr6:28,477,797-33,448,354. Single SNP model indicates that the predictive expression model for the gene contained only a single SNP.",
-                          tabsetPanel(
-                            id = 'twasresulttrt',
-                            tabPanel("DGN", DT::dataTableOutput("primary_ref_tbltrt")),
-                            tabPanel("GWB", DT::dataTableOutput("GWBtbltrt")),
-                            tabPanel("GTL", DT::dataTableOutput("GTLtbltrt")),
-                            tabPanel("MSA", DT::dataTableOutput("MSAtbltrt"))
-                          ),
-                          br(),
-                          hr(),
+                          # h4(strong("Table 2. Overall TWAS results for other traits in the trait category from primary and secondary reference panels within the locus")),
+                          # "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. ",
+                          # HTML('<span style="background-color:lightgreen">Significant gene-trait associations highlighted in green, </span><span style="background-color:tomato">HLA genes / MHC regions / single SNP models highlighted in red. </span>'),
+                          # " MHC region is defined as GRCh37; chr6:28,477,797-33,448,354. Single SNP model indicates that the predictive expression model for the gene contained only a single SNP.",
+                          # tabsetPanel(
+                          #   id = 'twasresulttrt',
+                          #   tabPanel("DGN", DT::dataTableOutput("primary_ref_tbltrt")),
+                          #   tabPanel("GWB", DT::dataTableOutput("GWBtbltrt")),
+                          #   tabPanel("GTL", DT::dataTableOutput("GTLtbltrt")),
+                          #   tabPanel("MSA", DT::dataTableOutput("MSAtbltrt"))
+                          # ),
+                          # br(),
+                          # hr(),
                           
                           
                           h4(strong("Table 3. Reported GWAS variants within the locus (all traits in the category)")),
@@ -420,22 +433,31 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     })
     
     # set the dataset to extract known variants at the locus
-    ds <- reactive({
-      if (locphcat()=="RBC") {
-        GWAS_sentinel
-      } else if (locphcat()=="WBC") {
-        wbcds
-      } else {
-        pltds
-      }
-    })
+    # ds <- reactive({
+    #   if (locphcat()=="RBC") {
+    #     GWAS_sentinel
+    #   } else if (locphcat()=="WBC") {
+    #     wbcds
+    #   } else {
+    #     pltds
+    #   }
+    # })
+    
+    ds <- GWAS_sentinel
     
     # select all known GWAS genes at locus
+    # phenotbl <- reactive({
+    #   tmp <- filter(ds(),(X6)>=xlow() & xhigh()>=(X6) & X5==locchr()) %>% select(X8)
+    #   colnames(tmp) <- c("Gene")
+    #   tmp
+    # })
+    
     phenotbl <- reactive({
-      tmp <- filter(ds(),(X6)>=xlow() & xhigh()>=(X6) & X5==locchr()) %>% select(X8)
+      tmp <- filter(ds,(X6)>=xlow() & xhigh()>=(X6) & X5==locchr()) %>% select(X8)
       colnames(tmp) <- c("Gene")
       tmp
     })
+    
     
     # select all TWAS genes at locus
     primary_ref_tbl <-  reactive({
@@ -946,22 +968,26 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
-                                   is.na(HLARegion) & is.na(MHCRegion)) %>%
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr #& 
+                                   #is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
       
       locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
       
       locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
       
       locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
       
@@ -1069,22 +1095,26 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
-                                   is.na(HLARegion) & is.na(MHCRegion)) %>%
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr 
+                                                   #& is.na(HLARegion) & is.na(MHCRegion)
+                                                   ) %>%
         select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
       
       locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
       
       locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
       
       locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
       
@@ -1192,22 +1222,26 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr & 
-                                   is.na(HLARegion) & is.na(MHCRegion)) %>%
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr 
+                                                   #& is.na(HLARegion) & is.na(MHCRegion)
+                                                   ) %>%
         select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
       
       locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
       
       locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
       
       locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() & is.na(HLARegion) & is.na(MHCRegion)) %>%
+                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                   ) %>%
         select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
       
@@ -1320,7 +1354,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
         #select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
         #       weightsnp, cohortsnp, SignifGene,HLARegion,MHCRegion,SingleSNP)
-        select(-locus2,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-locvar,-log10pvalmeta,-log10pval)
+        select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-locvar,-log10pvalmeta,-log10pval)
       #colnames(primary_ref_tbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
       #                      "# model SNPs","# SNPs used","TWAS significant",
       #                      "HLA gene","MHC region","1 SNP model")
@@ -1343,7 +1377,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       #   )
       
       #primary_ref_tblfin <- primary_ref_tbl[,c(input$show_vars)]
-      datatable(primary_ref_tbl, rownames=F)
+      DT::datatable(primary_ref_tbl, rownames=F)
       #primary_ref_tblplt <- primary_ref_tbl[, input$show_vars]
       #datatable(primary_ref_tblfin, rownames=F)
       #df <- as.data.frame(primary_ref_tbl)
@@ -1358,35 +1392,38 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     output$GTLtbl <- DT::renderDataTable({
       
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      xhigh <- max(locds$genestop)+1000000
-      xlow <- max(0,min(locds$genestart)-1000000)
-      locpheno <- unique(locds$phenoname) #locus phenotype
-      locchr<- unique(locds$chr) #locus chromosome
+      # locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      # xhigh <- max(locds$genestop)+1000000
+      # xlow <- max(0,min(locds$genestart)-1000000)
+      # locpheno <- unique(locds$phenoname) #locus phenotype
+      # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow & genestop <=xhigh & phenoname==locpheno & chr==locchr) %>%
-        select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
-               weightsnp,cohortsnp, SignifGene,HLARegion,MHCRegion, SingleSNP)
-      colnames(gtltbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
-                            "# model SNPs","#SNPs used","TWAS significant",
-                            "HLA gene","MHC region","1 SNP model")
+      gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow() & genestop <=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
+        #select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
+        #       weightsnp,cohortsnp, SignifGene,HLARegion,MHCRegion, SingleSNP)
+        select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
+      
+      #colnames(gtltbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+      #                      "# model SNPs","#SNPs used","TWAS significant",
+      #                      "HLA gene","MHC region","1 SNP model")
       
       # print data table
-      datatable(gtltbl, rownames=F, options = list(
-        order = list(list(7, 'asc')))) %>% formatStyle(
-          "TWAS significant", target = "row",
-          backgroundColor = styleEqual(c(1), c('lightgreen'))
-        ) %>% formatStyle(
-          "HLA gene", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "MHC region", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "1 SNP model", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )
+      # datatable(gtltbl, rownames=F, options = list(
+      #   order = list(list(7, 'asc')))) %>% formatStyle(
+      #     "TWAS significant", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('lightgreen'))
+      #   ) %>% formatStyle(
+      #     "HLA gene", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   ) %>% formatStyle(
+      #     "MHC region", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   ) %>% formatStyle(
+      #     "1 SNP model", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   )
+      DT::datatable(gtltbl, rownames=F)
     })
     
     
@@ -1395,35 +1432,38 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     output$GWBtbl <- DT::renderDataTable({
       
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      xhigh <- max(locds$genestop)+1000000
-      xlow <- max(0,min(locds$genestart)-1000000)
-      locpheno <- unique(locds$phenoname) #locus phenotype
-      locchr<- unique(locds$chr) #locus chromosome
+      # locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      # xhigh <- max(locds$genestop)+1000000
+      # xlow <- max(0,min(locds$genestart)-1000000)
+      # locpheno <- unique(locds$phenoname) #locus phenotype
+      # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow & genestop <=xhigh & phenoname==locpheno & chr==locchr) %>%
-        select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
-               SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(gwbtbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
-                            "# model SNPs","# SNPs used","TWAS significant",
-                            "HLA gene","MHC region","1 SNP model")
+      gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
+        # select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
+        #        SignifGene,HLARegion,MHCRegion,SingleSNP)
+        select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
+      # colnames(gwbtbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+      #                       "# model SNPs","# SNPs used","TWAS significant",
+      #                       "HLA gene","MHC region","1 SNP model")
       
       # print data table
-      datatable(gwbtbl, rownames=F, options = list(
-        order = list(list(7, 'asc')))) %>% formatStyle(
-          "TWAS significant", target = "row",
-          backgroundColor = styleEqual(c(1), c('lightgreen'))
-        ) %>% formatStyle(
-          "HLA gene", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "MHC region", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "1 SNP model", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )
+      # datatable(gwbtbl, rownames=F, options = list(
+      #   order = list(list(7, 'asc')))) %>% formatStyle(
+      #     "TWAS significant", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('lightgreen'))
+      #   ) %>% formatStyle(
+      #     "HLA gene", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   ) %>% formatStyle(
+      #     "MHC region", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   ) %>% formatStyle(
+      #     "1 SNP model", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   )
+      
+      DT::datatable(gwbtbl, rownames=F) 
     })
     
     
@@ -1432,35 +1472,37 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     output$MSAtbl <- DT::renderDataTable({
       
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      xhigh <- max(locds$genestop)+1000000
-      xlow <- max(0,min(locds$genestart)-1000000)
-      locpheno <- unique(locds$phenoname) #locus phenotype
-      locchr<- unique(locds$chr) #locus chromosome
+      # locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      # xhigh <- max(locds$genestop)+1000000
+      # xlow <- max(0,min(locds$genestart)-1000000)
+      # locpheno <- unique(locds$phenoname) #locus phenotype
+      # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow & genestop <=xhigh & phenoname==locpheno & chr==locchr) %>%
-        select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
-               SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(msatbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
-                            "# model SNPs","#SNPs used","TWAS significant",
-                            "HLA gene","MHC region","1 SNP model")
+      msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
+        # select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
+        #        SignifGene,HLARegion,MHCRegion,SingleSNP)
+        select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
+      # colnames(msatbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+      #                       "# model SNPs","#SNPs used","TWAS significant",
+      #                       "HLA gene","MHC region","1 SNP model")
       
       # print data table
-      datatable(msatbl, rownames=F, options = list(
-        order = list(list(7, 'asc')))) %>% formatStyle(
-          "TWAS significant", target = "row",
-          backgroundColor = styleEqual(c(1), c('lightgreen'))
-        ) %>% formatStyle(
-          "HLA gene", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "MHC region", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )  %>% formatStyle(
-          "1 SNP model", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )
+      # datatable(msatbl, rownames=F, options = list(
+      #   order = list(list(7, 'asc')))) %>% formatStyle(
+      #     "TWAS significant", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('lightgreen'))
+      #   ) %>% formatStyle(
+      #     "HLA gene", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   ) %>% formatStyle(
+      #     "MHC region", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   )  %>% formatStyle(
+      #     "1 SNP model", target = "row",
+      #     backgroundColor = styleEqual(c(1), c('red'))
+      #   )
+      DT::datatable(msatbl, rownames=F)
     })
     
     
@@ -1468,131 +1510,131 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     
     # TWAS other traits results table with separate tabs for each reference panel
-    output$primary_ref_tbltrt <- DT::renderDataTable({
-      
-      # select primary_ref_ all genes from other trait categories at locus
-      primary_ref_tbl <- filter(primary_ref_ds, genestart>=xlow() & genestop<=xhigh() & phenoname!=locpheno() 
-                       & chr==locchr() & phenocat==locphcat()) %>%
-        select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
-               SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(primary_ref_tbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
-                            "# model SNPs","#SNPs used","TWAS significant",
-                            "HLA gene","MHC region","1 SNP model")
-      
-      # print data table
-      datatable(primary_ref_tbl, rownames=F, options = list(
-        order = list(list(7, 'asc')))) %>% formatStyle(
-          "TWAS significant", target = "row",
-          backgroundColor = styleEqual(c(1), c('lightgreen'))
-        ) %>% formatStyle(
-          "HLA gene", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "MHC region", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "1 SNP model", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )
-    })
-    
-    
-    #####################
-    
-    
-    output$GTLtbltrt <- DT::renderDataTable({
-      
-
-      # select all genes at locus
-      gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow() & genestop<=xhigh() 
-                                    & phenoname!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
-        select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
-               SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(gtltbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
-                            "# model SNPs","#SNPs used","TWAS significant",
-                            "HLA gene","MHC region","1 SNP model")
-      
-      # print data table
-      datatable(gtltbl, rownames=F, options = list(
-        order = list(list(7, 'asc')))) %>% formatStyle(
-          "TWAS significant", target = "row",
-          backgroundColor = styleEqual(c(1), c('lightgreen'))
-        ) %>% formatStyle(
-          "HLA gene", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "MHC region", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "1 SNP model", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )
-    })
-    
-    
-    #####################
-    
-    
-    output$GWBtbltrt <- DT::renderDataTable({
-      
-      # select all genes at locus
-      gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow() & genestop<=xhigh()
-                                    & phenoname!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
-        select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
-               SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(gwbtbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
-                            "# model SNPs","#SNPs used","TWAS significant",
-                            "HLA gene","MHC region","1 SNP model")
-      
-      # print data table
-      datatable(gwbtbl, rownames=F, options = list(
-        order = list(list(7, 'asc')))) %>% formatStyle(
-          "TWAS significant", target = "row",
-          backgroundColor = styleEqual(c(1), c('lightgreen'))
-        ) %>% formatStyle(
-          "HLA gene", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "MHC region", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "1 SNP model", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )
-    })
-    
-    
-    #####################
-    
-    
-    output$MSAtbltrt <- DT::renderDataTable({
-      
-      # select all genes at locus
-      msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow() & genestop<=xhigh() 
-                                    & phenoname!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
-        select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
-               SignifGene,HLARegion,MHCRegion,SingleSNP)
-      colnames(msatbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
-                            "# model SNPs","#SNPs used","TWAS significant",
-                            "HLA gene","MHC region","1 SNP model")
-      
-      # print data table
-      datatable(msatbl, rownames=F, options = list(
-        order = list(list(7, 'asc')))) %>% formatStyle(
-          "TWAS significant", target = "row",
-          backgroundColor = styleEqual(c(1), c('lightgreen'))
-        ) %>% formatStyle(
-          "HLA gene", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "MHC region", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        ) %>% formatStyle(
-          "1 SNP model", target = "row",
-          backgroundColor = styleEqual(c(1), c('red'))
-        )
-    })
-    
+    # output$primary_ref_tbltrt <- DT::renderDataTable({
+    #   
+    #   # select primary_ref_ all genes from other trait categories at locus
+    #   primary_ref_tbl <- filter(primary_ref_ds, genestart>=xlow() & genestop<=xhigh() & phenoname!=locpheno() 
+    #                    & chr==locchr() & phenocat==locphcat()) %>%
+    #     select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
+    #            SignifGene,HLARegion,MHCRegion,SingleSNP)
+    #   colnames(primary_ref_tbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+    #                         "# model SNPs","#SNPs used","TWAS significant",
+    #                         "HLA gene","MHC region","1 SNP model")
+    #   
+    #   # print data table
+    #   datatable(primary_ref_tbl, rownames=F, options = list(
+    #     order = list(list(7, 'asc')))) %>% formatStyle(
+    #       "TWAS significant", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('lightgreen'))
+    #     ) %>% formatStyle(
+    #       "HLA gene", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     ) %>% formatStyle(
+    #       "MHC region", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     ) %>% formatStyle(
+    #       "1 SNP model", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     )
+    # })
+    # 
+    # 
+    # #####################
+    # 
+    # 
+    # output$GTLtbltrt <- DT::renderDataTable({
+    #   
+    # 
+    #   # select all genes at locus
+    #   gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow() & genestop<=xhigh() 
+    #                                 & phenoname!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
+    #     select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
+    #            SignifGene,HLARegion,MHCRegion,SingleSNP)
+    #   colnames(gtltbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+    #                         "# model SNPs","#SNPs used","TWAS significant",
+    #                         "HLA gene","MHC region","1 SNP model")
+    #   
+    #   # print data table
+    #   datatable(gtltbl, rownames=F, options = list(
+    #     order = list(list(7, 'asc')))) %>% formatStyle(
+    #       "TWAS significant", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('lightgreen'))
+    #     ) %>% formatStyle(
+    #       "HLA gene", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     ) %>% formatStyle(
+    #       "MHC region", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     ) %>% formatStyle(
+    #       "1 SNP model", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     )
+    # })
+    # 
+    # 
+    # #####################
+    # 
+    # 
+    # output$GWBtbltrt <- DT::renderDataTable({
+    #   
+    #   # select all genes at locus
+    #   gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow() & genestop<=xhigh()
+    #                                 & phenoname!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
+    #     select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
+    #            SignifGene,HLARegion,MHCRegion,SingleSNP)
+    #   colnames(gwbtbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+    #                         "# model SNPs","#SNPs used","TWAS significant",
+    #                         "HLA gene","MHC region","1 SNP model")
+    #   
+    #   # print data table
+    #   datatable(gwbtbl, rownames=F, options = list(
+    #     order = list(list(7, 'asc')))) %>% formatStyle(
+    #       "TWAS significant", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('lightgreen'))
+    #     ) %>% formatStyle(
+    #       "HLA gene", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     ) %>% formatStyle(
+    #       "MHC region", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     ) %>% formatStyle(
+    #       "1 SNP model", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     )
+    # })
+    # 
+    # 
+    # #####################
+    # 
+    # 
+    # output$MSAtbltrt <- DT::renderDataTable({
+    #   
+    #   # select all genes at locus
+    #   msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow() & genestop<=xhigh() 
+    #                                 & phenoname!=locpheno() & chr==locchr() & phenocat==locphcat()) %>%
+    #     select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
+    #            SignifGene,HLARegion,MHCRegion,SingleSNP)
+    #   colnames(msatbl) <- c("gene","chr","gene start","gene stop","trait","trait category","beta","p-value",
+    #                         "# model SNPs","#SNPs used","TWAS significant",
+    #                         "HLA gene","MHC region","1 SNP model")
+    #   
+    #   # print data table
+    #   datatable(msatbl, rownames=F, options = list(
+    #     order = list(list(7, 'asc')))) %>% formatStyle(
+    #       "TWAS significant", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('lightgreen'))
+    #     ) %>% formatStyle(
+    #       "HLA gene", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     ) %>% formatStyle(
+    #       "MHC region", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     ) %>% formatStyle(
+    #       "1 SNP model", target = "row",
+    #       backgroundColor = styleEqual(c(1), c('red'))
+    #     )
+    # })
+    # 
     
     ############################################################
     
@@ -1627,7 +1669,8 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
         
         # select set of TWAS insignificant genes
         primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locph & chr==locchr &
-                                     SignifGene==0  & is.na(HLARegion) & is.na(MHCRegion)) %>% select(genename)
+                                     SignifGene==0  #& is.na(HLARegion) & is.na(MHCRegion)
+                                     ) %>% select(genename)
         
         # indicator for significant TWAS gene pattern 
         phenotbl$X16 <- ifelse(grepl(paste(unique(locds$genename), collapse="|"),phenotbl$Gene),1,0)

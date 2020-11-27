@@ -426,11 +426,10 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     # locus specific characteristics
     locchr <-   reactive({ unique(locds()$chr) })
-    locpheno <- reactive({ unique(locds()$phenoname) })
-    locphcat <- reactive({ unique(locds()$phenocat) })
-    loctitle <- reactive({ paste0("chr ",locchr(),": ",xlow(),", ",xhigh(),"; trait = ",locpheno(),
-                                  ", trait category = ",locphcat())
-    })
+    locpheno <- reactive({ unique(locds()$pheno) })
+    #locphcat <- reactive({ unique(locds()$phenocat) })
+    loctitle <- reactive({ paste0("chr ",locchr(),": ",xlow(),", ",xhigh(),"; trait = ",locpheno())
+      })
     
     # set the dataset to extract known variants at the locus
     # ds <- reactive({
@@ -461,7 +460,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     # select all TWAS genes at locus
     primary_ref_tbl <-  reactive({
-      tmp <- filter(primary_ref_ds,genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr())
+      tmp <- filter(primary_ref_ds,genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr())
       
       if (nrow(phenotbl())==0){
         tmp$kngene="Not Reported in GWAS"
@@ -968,27 +967,27 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr #& 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locpheno() & chr==locchr #& 
                                    #is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
+        select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
       
       locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                      pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
       
       locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                      pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
       
       locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                      pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
       
       
@@ -996,13 +995,13 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # merge secondary reference panel data sets with primary_ref
-      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","pheno"), all = T)
       primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
       
-      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","pheno"), all = T)
       primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
       
-      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","pheno"), all = T)
       primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
       
       
@@ -1095,27 +1094,27 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locpheno() & chr==locchr 
                                                    #& is.na(HLARegion) & is.na(MHCRegion)
                                                    ) %>%
-        select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
+        select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
       
       locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
       
       locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
       
       locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
       
       
@@ -1123,13 +1122,13 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # merge secondary reference panel data sets with DGN
-      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","pheno"), all = T)
       primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
       
-      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","pheno"), all = T)
       primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
       
-      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","pheno"), all = T)
       primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
       
       
@@ -1222,27 +1221,27 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locpheno() & chr==locchr 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locpheno() & chr==locchr 
                                                    #& is.na(HLARegion) & is.na(MHCRegion)
                                                    ) %>%
-        select(genename,chr, phenoname,genestart,genestop,genemid,log10pval)
+        select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
       
       locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
       
       locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
       
       locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      phenoname==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, phenoname,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
       
       
@@ -1250,13 +1249,13 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # merge secondary reference panel data sets with primary ref
-      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","pheno"), all = T)
       primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
       
-      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","pheno"), all = T)
       primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
       
-      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","phenoname"), all = T)
+      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","pheno"), all = T)
       primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
       
       
@@ -1351,7 +1350,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       #locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr()) %>%
         #select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
         #       weightsnp, cohortsnp, SignifGene,HLARegion,MHCRegion,SingleSNP)
         select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-locvar,-log10pvalmeta,-log10pval)
@@ -1399,7 +1398,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow() & genestop <=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
+      gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow() & genestop <=xhigh() & pheno==locpheno() & chr==locchr()) %>%
         #select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
         #       weightsnp,cohortsnp, SignifGene,HLARegion,MHCRegion, SingleSNP)
         select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
@@ -1439,7 +1438,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
+      gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr()) %>%
         # select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
         #        SignifGene,HLARegion,MHCRegion,SingleSNP)
         select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
@@ -1479,7 +1478,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow() & genestop<=xhigh() & phenoname==locpheno() & chr==locchr()) %>%
+      msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr()) %>%
         # select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
         #        SignifGene,HLARegion,MHCRegion,SingleSNP)
         select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
@@ -1643,8 +1642,8 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
       xhigh <- max(locds$genestop)+1000000
       xlow <- max(0,min(locds$genestart)-1000000)
-      locpheno<-unique(locds$phenocat) #locus phenotype category
-      locph<-unique(locds$phenoname) #locus phenotype
+      locpheno<-unique(locds$pheno) #locus phenotype category
+      locph<-unique(locds$pheno) #locus phenotype
       locchr<- unique(locds$chr) #locus chromosome
       
       if (locpheno=="RBC") {
@@ -1668,7 +1667,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       } else {
         
         # select set of TWAS insignificant genes
-        primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & phenoname==locph & chr==locchr &
+        primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locph & chr==locchr &
                                      SignifGene==0  #& is.na(HLARegion) & is.na(MHCRegion)
                                      ) %>% select(genename)
         

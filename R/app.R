@@ -1646,13 +1646,8 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       locph<-unique(locds$pheno) #locus phenotype
       locchr<- unique(locds$chr) #locus chromosome
       
-      if (locpheno=="RBC") {
-        ds=GWAS_sentinel
-      } else if (locpheno=="WBC") {
-        ds=wbcds
-      } else {
-        ds=pltds
-      }
+
+      ds=GWAS_sentinel
       
       # select all known snps at locus
       phenotbl <- ds %>% filter(X6>=xlow & xhigh>=X6 & X5==locchr) %>%

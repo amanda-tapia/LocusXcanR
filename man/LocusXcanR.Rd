@@ -20,7 +20,8 @@ LocusXcanR(
   head_details = "",
   method_details = "",
   primary_tissue,
-  meta_present = FALSE
+  meta_present = FALSE,
+  meta_thresh
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ LocusXcanR(
 \item{primary_tissue}{character, if multiple tissues are available for analysis, list the name of the primary tissue}
 
 \item{meta_present}{logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE)}
+
+\item{meta_thresh}{numeric, p-value threshold for meta-analysis results (required if meta_present=TRUE)}
 }
 \value{
 An R Shiny application

@@ -5,7 +5,7 @@ Authors@R: person("Amanda", "Tapia", email = "altapia@live.unc.edu",
                   role = c("aut", "cre"))
 Maintainer: Amanda Tapia <altapia@live.unc.edu>
 Description: What the package does (one paragraph).
-Depends: R (>= 3.1.0),
+Depends: R (>= 3.5.0),
          DT,
          plotly,
          visNetwork,
@@ -16,7 +16,8 @@ Imports: RColorBrewer,
          tidyverse,
          magrittr,
          data.table,
-         shiny
+         shiny,
+         stats
 License: A license is not available.
 LazyData: true
 RoxygenNote: 7.1.1

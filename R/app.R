@@ -52,6 +52,7 @@
 #' @importFrom DT "formatStyle","styleEqual","datatable"
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","geom_point","geom_hline","theme_bw","geom_segment","annotate"
 #' @importFrom utils "read.table"
+#' @importFrom stats "complete.cases", "setNames")
 #'
 #
 ####################################################################

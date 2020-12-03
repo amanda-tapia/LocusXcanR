@@ -9,7 +9,6 @@ Depends: R (>= 3.5.0),
          DT,
          plotly,
          visNetwork,
-         dplyr,
          tidyr
 Imports: RColorBrewer,
          ggplot2,
@@ -17,7 +16,7 @@ Imports: RColorBrewer,
          magrittr,
          data.table,
          shiny,
-         stats
+         dplyr
 License: A license is not available.
 LazyData: true
 RoxygenNote: 7.1.1

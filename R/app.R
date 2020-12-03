@@ -23,14 +23,14 @@
 #' @param study_name character, the name of the study (optional, default is missing)
 #' @param conditional_present logical, TRUE if conditional analysis results are available for plotting, FALSE otherwise (default is FALSE)
 #' @param multiple_tissues logical, TRUE if TWAS results are available from more than one tissue, FALSE if TWAS results are only available from a single tissue or a multi-tissue analysis (default is FALSE)
-#' @param known_gwas character, file path to study GWAS data matching known variants
-#' @param db_genes character, file path to a list of genes in the database
-#' @param all_gwas character, file path to study GWAS data
-#' @param ld_gwas character, file path to the LD among study variants or an LD reference panel
+#' @param known_gwas character, file path to study GWAS data matching known variants (required)
+#' @param db_genes character, file path to a list of genes in the database (required)
+#' @param all_gwas character, file path to study GWAS data (required)
+#' @param ld_gwas character, file path to the LD among study variants or an LD reference panel (required)
 #' @param ref_expr_name character, name of the reference expression data set used in the analysis (optional, default is missing)
 #' @param head_details character, any additional header details to be included in the app (optional, default is no details). HTML formatting commands may be used.
 #' @param method_details character, detailed methods section (optional, default is no details). HTLM formatting commands may be used.
-#' @param primary_tissue character, if multiple tissues are available for analysis, list the name of the primary tissue
+#' @param primary_tissue character, if multiple tissues are available for analysis, list the name of the primary tissue (required if multiple_tissues = TRUE)
 #' @param meta_present logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE)
 #' @param meta_thresh numeric, p-value threshold for meta-analysis results (required if meta_present=TRUE)
 #' 
@@ -52,7 +52,7 @@
 #' @importFrom DT "formatStyle","styleEqual","datatable"
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","geom_point","geom_hline","theme_bw","geom_segment","annotate"
 #' @importFrom utils "read.table"
-#' @importFrom stats "complete.cases", "setNames")
+#' @importFrom stats "complete.cases"
 #'
 #
 ####################################################################

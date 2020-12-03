@@ -30,8 +30,9 @@ library(LocusXcanR)
 
 # Introduction
 
-Use sections (and sub-sections) to demarcate meaningful steps in the process, e.g. “Preprocessing”, “Quality control”, “Main analysis”, “Plotting results”, “Diagnostics”, etc. You can specify toc: true (and toc_float: true) in the output section of the preamble in order to add a Table of Contents (and make it floating, that is, unfold/fold and follow as the user scrolls down). See the Rmarkdown cheat sheet for instructions on adding options to the preamble.
-Most of the code chunks should be evaluated, it’s ok to add a few eval=FALSE code chunks for demonstration, but vignettes where none of the code chunks are evaluated are not as helpful in my opinion, as the output that a user gets when running the code may differ from what happens in the non-evaluated code chunks, which may even generate errors if they are out-of-date!
+The interpretation of TWAS results is not always straightforward and can be quite challenging, especially for large-scale analyses, such as the Genetic Epidemiology on Adult Health and Aging (GERA) cohort (N ~ 55,000) and UK Biobank (N ~ 500,000). Care must be taken to interpret TWAS results in context (e.g. alongside information known from other 'omics studies such as GWAS), understand how multiple TWAS signals at a given locus may be affected by correlated gene expression and/or the sharing of model variants, and evaluate how fine-mapping results either clarify the most likely causal genes, or may be confounded by some of the same challenges as the original TWAS analysis.
+
+Thus, in order to facilitate the interpretation of TWAS findings, we present an R package which creates an R Shiny application that we have designed to interactively visualize TWAS results. We discuss, in detail, the key features of the R package and R Shiny application and show how it can be used to quickly interpret very complex TWAS loci in the context of prior knowledge from GWAS.
 
 ```{r, include=FALSE}
 dir <- system.file("extdata", package="LocusXcanR")
@@ -41,33 +42,103 @@ twas_ds <- read.table(file.path(dir, "twas_ds.txt"), header=T, stringsAsFactors 
 load(file.path(rdir,"pred_exp_corr.Rdata"))
 ```
 
-# LocusXcanR R function
-LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
-                      known_variants,known_gwas,db_genes,all_gwas,ld_gwas,ref_expr_name="",head_details="",method_details="",
-                      primary_tissue,meta_present=FALSE){}
+# LocusXcanR Function
+The `LocusXcanR` function takes several datasets as input, including TWAS results, GWAS results, gene expression reference panel weights,  GWAS LD, and predicted expression correlation. These results are then integrated into a single HTML webpage via R Shiny, and the interactive visualizations and data tables can then be used to facilitate TWAS results interpretation.
 
+```
+LocusXcanR <- function(twas_result, weight_tbl, study_name = "", pred_exp_corr,
+                       conditional_present = FALSE, multiple_tissues = FALSE,
+                       known_variants, known_gwas, db_genes, all_gwas, ld_gwas,
+                       ref_expr_name = "", head_details = "", method_details = "",
+                       primary_tissue, meta_present = FALSE)
+```
 
-# Example Data
-
-
-##  TWAS results dataset  
-The data set <code>twas_ds</code> requires the following variables:  
+The `LocusXcanR` function contains the following **required** parameters and their definitions:
 <ul>
-  <li><code>tissue</code>:</li>
-  <li><code>locus</code>: integer, value indicating the locus number</li>
-  <li><code>locstart</code>: integer, value indicating the genomic start position of the locus</li>
-  <li><code>locstop</code>: integer, value indicating the genomic stop position of the locus</li>
-  <li><code>chr</code>: integer, chromosome number</li>
-  <li><code>index</code>: character, the index (most significant) gene within the locus</li>
-  <li><code>pheno</code>:</li>
-  <li><code>genestart</code>:</li>
-  <li><code>genestop</code>:</li>
-  <li><code>p</code>:</li>
-  <li><code>genename</code>:</li>
+  <li>`twas_result`: character, file path to TWAS results (required). See TWAS results dataset section below for more details.</li>
+  
+  <li>`weight_tbl`: character, file path to TWAS weights database (required). See Weights table section below for more details.</li>
+  
+  <li>`known_variants`: character, file path to known GWAS variants (required). See Known variants dataset section below for more details.</li>
+  
+  <li>`pred_exp_corr`: character, file path to predicted expression correlation (required). See Predicted expression correlation dataset section for more details.</li>
+  
+   <li>`known_gwas`: character, file path to study GWAS data matching known variants (required). See Known GWAS dataset section below for more details.</li>
+  
+  <li>`db_genes`: character, file path to a list of genes in the database (required). ***update here***</li>
+  
+  <li>`all_gwas`: character, file path to study GWAS data (required). ***update here***</li>
+  
+  <li>`ld_gwas`: character, file path to the LD among study variants or an LD reference panel  (required). See LD GWAS section for more details.</li>
+  
+</ul>
+  
+
+The `LocusXcanR` function contains the following **optional** parameters and their definitions:
+<ul>
+  <li>`study_name`: character, the name of the study/cohort (optional, default is missing). For example `study_name = "Genetic Epidemiology on Adult Health and Aging"` or `study_name = "GERA"`.</li>
+  
+  <li>`conditional_present`: logical, TRUE if conditional analysis results are available for plotting, FALSE otherwise (default is FALSE). See TWAS results dataset section for more details on including conditional analysis results.</li>
+  
+  <li>`multiple_tissues`: logical, TRUE if TWAS results are available from more than one tissue, FALSE if TWAS results are only available from a single tissue or a multi-tissue analysis (default is FALSE). This parameter can be used to compare, for example, results from a primary tissue gene expression reference panel (e.g. Depression Genes and Networks whole blood gene expression) to one or more secondary tissue gene expression reference panel(s) (e.g. Genotype-tissue Expression Project whole blood gene expression), when `multiple_tissues = TRUE`. See TWAS results dataset section for more details on including secondary tissue gene expression reference panels.</li>
+  
+  <li>`ref_expr_name`: character, name of the reference expression data set used in the analysis (optional, default is missing). For example `ref_expr_name = "Depression Genes and Networks whole blood"` or `ref_expr_name = "DGN"`.</li>
+  
+  <li>`head_details`: character, any additional header details to be included in the app (optional, default is missing). HTML formatting commands may be used. See Frequently Asked Questions section for `header_details` examples.</li>
+  
+  <li>`method_details`: character, detailed methods section (optional, default is missing). HTLM formatting commands may be used. See Frequently Asked Questions for `method_details` examples.</li>
+  
+  <li>`primary_tissue`: character, if multiple tissues are available for analysis, list the name of the primary tissue (required if `multiple_tissues = TRUE`.  For example, if you have results to compare from DGN and GTEx, and DGN is your primary tissue reference panel, then `primary_tissue = "DGN"`. The character string given to `primary_tissue` must match a `tissue` name in the dataset loaded by `twas_result`. See TWAS results dataset section for more details.</li>
+  
+  <li>`meta_present`: logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE).</li>
+  
+  <li>`meta_thresh`: numeric, p-value threshold for meta-analysis results (required if `meta_present = TRUE`).</li>
 </ul>
 
-Additional variables may also be included in the dataset. Any additional variables will be ignored
-when plotting figures but will be printed in data tables.
+
+
+# Data Pre-processing
+
+##  TWAS results dataset
+The TWAS results dataset includes, at the very minimum, TWAS results (in the form of a p-value) from a primary TWAS analysis. P-values from a primary TWAS analysis may come from a single-tissue TWAS analysis, a multi-tissue TWAS analysis, or a TWAS meta-analysis. The TWAS results dataset may optionally include results from a TWAS meta-analysis (e.g. for replication), TWAS conditional analysis, and/or TWAS results from secondary tissue gene expression reference panels for comparison.
+
+
+The dataset <code>twas_ds</code> requires the following variables:  
+<ul>
+  <li><code>tissue</code>: character, name (or an abbreviated name) of the tissue reference panel</li>
+  
+  <li><code>locus</code>: integer, value indicating the locus number</li>
+  
+  <li><code>locstart</code>: integer, value indicating the genomic start position of the locus</li>
+  
+  <li><code>locstop</code>: integer, value indicating the genomic stop position of the locus</li>
+  
+  <li><code>chr</code>: integer, chromosome number</li>
+  
+  <li><code>index</code>: character, the index (most significant) gene within the locus</li>
+  
+  <li><code>pheno</code>: character, the name of the phenotype being analyzed (may be one or more phenotypes)</li>
+  
+  <li><code>genestart</code>: integer, value indicating the genomic start position of the gene (may be the gene start position or transcription start site or whatever starting position you would like to plot for the gene)</li>
+  
+  <li><code>genestop</code>: integer, value indicating the genomic stop position of the gene (may be the gene stop position or transcription stop site or whatever stopping position you would like to plot for the gene)</li>
+  
+  <li><code>p</code>: numeric, p-value of the TWAS association test between phenotype and predicted gene expression</li>
+  
+  <li><code>genename</code>: character, the name of the gene (may be the gene name or the ENSMBL ID or any other name you use to identify the gene) ***update here RE gene/genename***</li>
+  
+  <li><code>SignifGene</code>: boolean, indicator of whether the gene-trait association is statistically significant (1 if significant, 0 otherwise)</li>
+</ul>
+
+
+Optional variables may also be included in the <code>twas_ds</code> dataset. These include the following:
+<ul>
+  <li><code>p_meta</code>: numeric, p-value from a TWAS meta-analysis used for replication, if available (required if `meta_present = TRUE`</li>
+ 
+  <li><code>p_conditional</code>: numeric, p-value from a TWAS conditional analysis, if available (required if `conditional_present = TRUE`</li>
+</ul>
+
+Additional variables (beyond those that are required or optional) may also be included in the <code>twas_ds</code> dataset. Any additional variables will be ignored when plotting figures but will be printed in data tables within the application.
 
 Here is an example of <code>twas_ds</code>:
 ```{r}
@@ -76,21 +147,52 @@ knitr::kable(twas_ds[1:5,])
 
 ## GWAS results dataset
 
-Here is an example of <code>known_variants</code>:
+Here is an example of `known_variants` ***update example here***:
 ```{r}
 knitr::kable(twas_ds[1:5,])
 ```
 
 ## Predicted expression correlation dataset
-Name of correlation matrix object must be saved as capital <code>M</code>.
+The predicted expression correlation dataset is an <code>M X M</code> matrix of <code>M</code> genes required for plotting, which contains pairwise correlations between each gene in the matrix. You may include all genes from your TWAS analysis; however, for computational efficiency, it is recommended that you only include those genes that you wish to plot (e.g. only the statistically significant genes and those previously known from GWAS). This correlation matrix must be in <code>.Rdata</code> format, and the name of correlation matrix object must be saved as capital <code>M</code>.
 
-Here is an example of the <code>M</code> object loaded by the <code>pred_exp_corr</code> parameter.
+Here is an example of the <code>M</code> correlation matrix object loaded by the <code>pred_exp_corr</code> parameter.
 ```{r}
 knitr::kable(M[1:5,1:5])
 ```
 
+## Weights table weight_tbl
+
+## Known variants dataset known_variants
+
+## Known GWAS dataset known_gwas
+
+## DB genes db_genes
+
+## All GWAS all_gwas
+
+## LD GWAS ld_gwas
 
 # Frequently Asked Questions
+
+## What can I include in my header details?
+The `header_details` parameter is a character string parameter which may include simple text characters and/or HTML formatting commands. For example, simple text characters may include the following:
+
+```
+header_details = "All genomic positions are from GRCh37. TWAS results for 10 traits are presented in the figures and tables below."
+
+```
+
+HTML commands for formatting may be included as in the following example:
+```
+header_details = "All genomic positions are from GRCh37.<p>TWAS results for 10 traits are presented in the figures and tables below. Traits and trait categories are listed and defined as follows:<p><ul><li>Platelet count (PLT)</li><li>Red blood cell indices (RBC): red blood cell count (RBC), hematocrit (HCT), hemoglobin (HGB), mean corpuscular volume (MCV), and red cell distribution width (RDW)</li><li>White blood cell indices (WBC): white blood cell count (WBC), monocyte (MONO), neutrophil (NEUTRO), and lymphocyte (LYMPH)</li></ul>"
+
+```
+
+## What can I include in my method details?
+
+## Does the order of the column names in any of the datasets matter?
+The order of the column names does not matter. However, the names of the columns in your data must match the column names (required or optional) listed for each dataset in the Data Pre-processing section. Any additional variables included in your datasets which do not match those listed in the Data Pre-processing section will also be printed in the data tables within the application.
+
 
 # Acknowledgements
 list people who helped in writing the software
@@ -98,3 +200,7 @@ list people who helped in writing the software
 # References
 list relevant literature
 See the preamble above for how to add a BibTex file (and see Rmarkdown cheat sheet for how to add references to an Rmarkdown file).
+
+
+Use sections (and sub-sections) to demarcate meaningful steps in the process, e.g. “Preprocessing”, “Quality control”, “Main analysis”, “Plotting results”, “Diagnostics”, etc. You can specify toc: true (and toc_float: true) in the output section of the preamble in order to add a Table of Contents (and make it floating, that is, unfold/fold and follow as the user scrolls down). See the Rmarkdown cheat sheet for instructions on adding options to the preamble.
+Most of the code chunks should be evaluated, it’s ok to add a few eval=FALSE code chunks for demonstration, but vignettes where none of the code chunks are evaluated are not as helpful in my opinion, as the output that a user gets when running the code may differ from what happens in the non-evaluated code chunks, which may even generate errors if they are out-of-date!

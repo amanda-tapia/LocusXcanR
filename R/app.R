@@ -364,7 +364,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                                   <li><span style="background-color:lightgreen">matching significant TWAS genes highlighted in green</span></li>
                                   <li><span style="background-color:yellow"    >matching non-significant TWAS genes highlighted in yellow</span></li>
                                   <li><span style="background-color:orange"    >included in DGN but not predicted in GERA highlighted in orange</span></li>
-                                  <li><span style="background-color:tomato"    >included in DGN but predictive model does not contain SNPs highlighted in red</span></li>
+                                  <li><span style="background-color:tomato"    >included in DGN but no predictive model was fit for the gene highlighted in red</span></li>
                                   <li>not included in DGN (i.e. we have no info in this analysis) are not highlighted</li>
                                   </ul>
                                   ')),

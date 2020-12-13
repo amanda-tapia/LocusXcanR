@@ -46,7 +46,7 @@
 #' @importFrom tidyr "separate"
 #' @importFrom dplyr "filter","select","distinct"
 #' @importFrom plotly "renderPlotly","plotlyOutput","ggplotly"
-#' @importFrom visNetwork "renderVisNetwork","visNetworkOutput","visNetwork"
+#' @importFrom visNetwork "renderVisNetwork","visNetworkOutput","visNetwork","visOptions"
 #' @importFrom data.table ":=","data.table","as.data.table"
 #' @importFrom shiny "fluidPage","h3","h4","HTML","tabPanel","tabsetPanel","br","hr","strong","navbarPage","h5","fixedPanel","p"
 #' @importFrom DT "formatStyle","styleEqual","datatable"
@@ -677,7 +677,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # select the LD for the given locus
-      LDdsloc <- as.data.table(filter(LDds,locus2==locnum()))
+      LDdsloc <- as.data.table(filter(LDds,locus==locnum()))
       
       # define correlation and color groups
       LDdsloc[,ldcol:= cut(LDdsloc[,abs(corrab)],
@@ -797,7 +797,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                   "(0.4 - 0.6]"="#00FF00","(0.6 - 0.8]"="#FF9900","(0.8 - 1]"="#FF0000")
       
       # select the LD for the given locus
-      LDdsloc <- as.data.table(filter(LDds,locus2==locnum()))
+      LDdsloc <- as.data.table(filter(LDds,locus==locnum()))
       
       # define correlation and color groups
       LDdsloc[,ldcol:= cut(LDdsloc[,abs(corrab)],

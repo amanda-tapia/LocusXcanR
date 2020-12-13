@@ -32,7 +32,7 @@ library(LocusXcanR)
 
 The interpretation of TWAS results is not always straightforward and can be quite challenging, especially for large-scale analyses, such as the Genetic Epidemiology on Adult Health and Aging (GERA) cohort (N ~ 55,000) and UK Biobank (N ~ 500,000). Care must be taken to interpret TWAS results in context (e.g. alongside information known from other 'omics studies such as GWAS), understand how multiple TWAS signals at a given locus may be affected by correlated gene expression and/or the sharing of model variants, and evaluate how fine-mapping results either clarify the most likely causal genes, or may be confounded by some of the same challenges as the original TWAS analysis.
 
-Thus, in order to facilitate the interpretation of TWAS findings, we present an R package which creates an R Shiny application that we have designed to interactively visualize TWAS results. We discuss, in detail, the key features of the R package and R Shiny application and show how it can be used to quickly interpret very complex TWAS loci in the context of prior knowledge from GWAS.
+Thus, in order to facilitate the interpretation of TWAS findings, we present an R package which creates an R Shiny application designed to interactively visualize TWAS results. We discuss, in detail, the features of the R package and R Shiny application and show how it can be used to quickly interpret very complex TWAS loci in the context of prior knowledge from GWAS.
 
 ```{r, include=FALSE}
 dir <- system.file("extdata", package="LocusXcanR")
@@ -45,6 +45,8 @@ ld_gwas <- read.table(file.path(dir, "ld_gwas.txt"), header=T, stringsAsFactors 
 load(file.path(rdir,"pred_exp_corr.Rdata"))
 
 db_genes <- read.table(file.path(dir, "db_genes.txt"), header=T, stringsAsFactors = F)
+
+all_gwas <- read.table(file.path(dir, "all_gwas.txt"), header=T, stringsAsFactors = F)
 ```
 
 # LocusXcanR Function
@@ -104,7 +106,7 @@ The `LocusXcanR` function contains the following **optional** parameters and the
 
 # Data Pre-processing
 
-##  TWAS results dataset
+##  TWAS results dataset (`twas_ds`)
 The TWAS results dataset includes, at the very minimum, TWAS results (in the form of a p-value) from a primary TWAS analysis. P-values from a primary TWAS analysis may come from a single-tissue TWAS analysis, a multi-tissue TWAS analysis, or a TWAS meta-analysis. The TWAS results dataset may optionally include results from a TWAS meta-analysis (e.g. for replication), TWAS conditional analysis, and/or TWAS results from secondary tissue gene expression reference panels for comparison.
 
 
@@ -150,14 +152,31 @@ Here is an example of <code>twas_ds</code>:
 knitr::kable(twas_ds[1:5,])
 ```
 
-## GWAS results dataset
 
-Here is an example of `known_variants` ***update example here***:
+## GWAS results dataset (`all_gwas`)
+
+The GWAS results dataset `all_gwas` contains all of the analytic cohort GWAS p-values that you wish to plot. It is recommended that you subset the GWAS results dataset based on a p-value threshold (e.g. only include variants with GWAS p-value < 0.05). The dataset contains variant information, the GWAS p-value, and the locus in which the variant needs to be plotted.
+
+The dataset `all_gwas` requires the following variables:
+
+<ul>
+  <li>`SNP`: character, indicating chromosome : position : allele1 : allele2</li>
+ 
+  <li>`PVAL`: numeric, the GWAS p-value for the variant in the analytic cohort</li>
+  
+  <li>`LOCUS`: numeric, the locus number in which you wish to plot the variant  </li>
+</ul>
+
+Here is an example of `all_gwas`:
 ```{r}
-knitr::kable(twas_ds[1:5,])
+knitr::kable(all_gwas[c(1:5),])
 ```
 
-## Predicted expression correlation dataset
+
+## Known GWAS dataset (`known_gwas`)
+
+
+## Predicted expression correlation dataset (`pred_exp_corr`)
 The predicted expression correlation dataset is an <code>M X M</code> matrix of <code>M</code> genes required for plotting, which contains pairwise correlations between each gene in the matrix. You may include all genes from your TWAS analysis; however, for computational efficiency, it is recommended that you only include those genes that you wish to plot (e.g. only the statistically significant genes and those previously known from GWAS). This correlation matrix must be in <code>.Rdata</code> format, and the name of the correlation matrix object must be saved as capital <code>M</code>.
 
 Here is an example of the <code>M</code> correlation matrix object loaded by the <code>pred_exp_corr</code> parameter.
@@ -165,13 +184,13 @@ Here is an example of the <code>M</code> correlation matrix object loaded by the
 knitr::kable(M[1:5,1:5])
 ```
 
-## Weights table weight_tbl
 
-## Known variants dataset known_variants
+## Weights table (`weight_tbl`)
 
-## Known GWAS dataset known_gwas
+## Known variants dataset (`known_variants`)
 
-## DB genes
+
+## DB genes (`db_genes`)
 
 The `db_genes` dataset contains a list of genes from the primary gene expression reference panel that were either not predicted in the analytic cohort or no gene expression model was fit for the gene. This data set is used to determine whether there are any genes from the reference panel which were not predicted in the analytic cohort or no gene expression model was fit for the gene, but one or more GWAS sentinel variants implicate the gene as potentially causal.
 
@@ -188,9 +207,8 @@ Here is an example of `db_genes`:
 knitr::kable(db_genes[c(19:23),])
 ```
 
-## All GWAS all_gwas
 
-## LD GWAS
+## LD GWAS (`ld_gwas`)
 
 The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted. ***note here about matching to the weights table***
 

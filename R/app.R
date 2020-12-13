@@ -494,7 +494,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
       
       # select the GWAS results at the locus
-      gwasloc <- gwasallfin %>% filter(Locus==locnum())
+      gwasloc <- gwasallfin %>% filter(LOCUS==locnum())
 
       if (nrow(cohort_gwas_knownfin[cohort_gwas_knownfin$Locus==locnum(),])==0){
         gwasloc$knsnp <- "Not reported in GWAS"
@@ -641,7 +641,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       primary_ref_wtloc <- weight_ds %>% filter(gene %in% corplt$gene)
       
       # subset the GWAS variants for specific chr, and phenotype
-      gwasallfinloc <- gwasallfin %>% filter(Locus==locnum()) %>%
+      gwasallfinloc <- gwasallfin %>% filter(LOCUS==locnum()) %>%
         select(pos,all1,all2,poslog10p)
       gwasallfinloc$posnum <- as.numeric(gwasallfinloc$pos)
       
@@ -763,7 +763,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       primary_ref_wtloc <- weight_ds %>% filter(gene %in% corplt$gene)
       
       # subset the GWAS variants for specific chr, and phenotype
-      gwasallfinloc <- gwasallfin %>% filter(Locus==locnum()) %>%
+      gwasallfinloc <- gwasallfin %>% filter(LOCUS==locnum()) %>%
         select(pos,all1,all2,poslog10p)
       gwasallfinloc$posnum <- as.numeric(gwasallfinloc$pos)
       

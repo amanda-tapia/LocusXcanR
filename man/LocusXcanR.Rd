@@ -39,13 +39,13 @@ LocusXcanR(
 
 \item{known_variants}{character, file path to known GWAS variants (required). See Details for required column names.}
 
-\item{known_gwas}{character, file path to study GWAS data matching known variants}
+\item{known_gwas}{character, file path to study GWAS data matching known variants (required)}
 
-\item{db_genes}{character, file path to a list of genes in the database}
+\item{db_genes}{character, file path to a list of genes in the database (required)}
 
-\item{all_gwas}{character, file path to study GWAS data}
+\item{all_gwas}{character, file path to study GWAS data (required)}
 
-\item{ld_gwas}{character, file path to the LD among study variants or an LD reference panel}
+\item{ld_gwas}{character, file path to the LD among study variants or an LD reference panel (required)}
 
 \item{ref_expr_name}{character, name of the reference expression data set used in the analysis (optional, default is missing)}
 
@@ -53,7 +53,7 @@ LocusXcanR(
 
 \item{method_details}{character, detailed methods section (optional, default is no details). HTLM formatting commands may be used.}
 
-\item{primary_tissue}{character, if multiple tissues are available for analysis, list the name of the primary tissue}
+\item{primary_tissue}{character, if multiple tissues are available for analysis, list the name of the primary tissue (required if multiple_tissues = TRUE)}
 
 \item{meta_present}{logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE)}
 
@@ -68,15 +68,7 @@ in order to visualize them together in a single web page
 application via R Shiny and facilitates TWAS results interpretation in context.
 }
 \details{
-This is the beginning of the details section
-
-\code{twas_result} requires the following column names: 
-
-\code{weight_tbl} requires the following column names: 
-
-\code{known_variants} requires the following column names: 
-
-\code{pred_exp_corr} requires the following column names: 
+Please reference the vignette here () for further details on required and optional variables for each input dataset
 
 Created by: Amanda L. Tapia, Date: 06/08/2020
 }

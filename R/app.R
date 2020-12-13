@@ -4,15 +4,7 @@
 #' in order to visualize them together in a single web page
 #' application via R Shiny and facilitates TWAS results interpretation in context.
 #' 
-#' This is the beginning of the details section
-#' 
-#' \code{twas_result} requires the following column names: 
-#' 
-#' \code{weight_tbl} requires the following column names: 
-#' 
-#' \code{known_variants} requires the following column names: 
-#' 
-#' \code{pred_exp_corr} requires the following column names: 
+#' Please reference the vignette here () for further details on required and optional variables for each input dataset
 #' 
 #' Created by: Amanda L. Tapia, Date: 06/08/2020
 #'

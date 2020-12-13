@@ -11,4 +11,4 @@ importFrom(shiny,"fluidPage","h3","h4","HTML","tabPanel","tabsetPanel","br","hr"
 importFrom(stats,"complete.cases")
 importFrom(tidyr,"separate")
 importFrom(utils,"read.table")
-importFrom(visNetwork,"renderVisNetwork","visNetworkOutput","visNetwork")
+importFrom(visNetwork,"renderVisNetwork","visNetworkOutput","visNetwork","visOptions")

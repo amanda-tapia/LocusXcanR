@@ -8,7 +8,6 @@ Description: What the package does (one paragraph).
 Depends: R (>= 3.5.0),
          DT,
          plotly,
-         visNetwork,
          tidyr
 Imports: RColorBrewer,
          ggplot2,
@@ -16,7 +15,8 @@ Imports: RColorBrewer,
          magrittr,
          data.table,
          shiny,
-         dplyr
+         dplyr,
+         visNetwork
 License: A license is not available.
 LazyData: true
 RoxygenNote: 7.1.1

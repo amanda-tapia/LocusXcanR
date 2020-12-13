@@ -43,6 +43,8 @@ twas_ds <- read.table(file.path(dir, "twas_ds.txt"), header=T, stringsAsFactors 
 ld_gwas <- read.table(file.path(dir, "ld_gwas.txt"), header=T, stringsAsFactors = F)
 
 load(file.path(rdir,"pred_exp_corr.Rdata"))
+
+db_genes <- read.table(file.path(dir, "db_genes.txt"), header=T, stringsAsFactors = F)
 ```
 
 # LocusXcanR Function
@@ -169,13 +171,28 @@ knitr::kable(M[1:5,1:5])
 
 ## Known GWAS dataset known_gwas
 
-## DB genes db_genes
+## DB genes
+
+The `db_genes` dataset contains a list of genes from the primary gene expression reference panel that were either not predicted in the analytic cohort or no gene expression model was fit for the gene. This data set is used to determine whether there are any genes from the reference panel which were not predicted in the analytic cohort or no gene expression model was fit for the gene, but one or more GWAS sentinel variants implicate the gene as potentially causal.
+
+The dataset `db_genes` requires the following variables:
+
+<ul>
+  <li>`genename`: character, the name of the gene</li>
+ 
+  <li>`genestatus`: boolean, status indicator for the gene. 0 = gene was not predicted in the analytic cohort, 1 = no gene expression model was fit for the gene </li>
+</ul>
+
+Here is an example of `db_genes`:
+```{r}
+knitr::kable(db_genes[c(19:23),])
+```
 
 ## All GWAS all_gwas
 
 ## LD GWAS
 
-The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted.
+The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted. ***note here about matching to the weights table***
 
 The dataset `ld_gwas` requires the following variables:
 <ul>

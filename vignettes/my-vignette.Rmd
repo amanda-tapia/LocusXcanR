@@ -39,6 +39,9 @@ dir <- system.file("extdata", package="LocusXcanR")
 rdir <- system.file("data", package="LocusXcanR")
 
 twas_ds <- read.table(file.path(dir, "twas_ds.txt"), header=T, stringsAsFactors = F)
+
+ld_gwas <- read.table(file.path(dir, "ld_gwas.txt"), header=T, stringsAsFactors = F)
+
 load(file.path(rdir,"pred_exp_corr.Rdata"))
 ```
 
@@ -153,7 +156,7 @@ knitr::kable(twas_ds[1:5,])
 ```
 
 ## Predicted expression correlation dataset
-The predicted expression correlation dataset is an <code>M X M</code> matrix of <code>M</code> genes required for plotting, which contains pairwise correlations between each gene in the matrix. You may include all genes from your TWAS analysis; however, for computational efficiency, it is recommended that you only include those genes that you wish to plot (e.g. only the statistically significant genes and those previously known from GWAS). This correlation matrix must be in <code>.Rdata</code> format, and the name of correlation matrix object must be saved as capital <code>M</code>.
+The predicted expression correlation dataset is an <code>M X M</code> matrix of <code>M</code> genes required for plotting, which contains pairwise correlations between each gene in the matrix. You may include all genes from your TWAS analysis; however, for computational efficiency, it is recommended that you only include those genes that you wish to plot (e.g. only the statistically significant genes and those previously known from GWAS). This correlation matrix must be in <code>.Rdata</code> format, and the name of the correlation matrix object must be saved as capital <code>M</code>.
 
 Here is an example of the <code>M</code> correlation matrix object loaded by the <code>pred_exp_corr</code> parameter.
 ```{r}
@@ -170,7 +173,30 @@ knitr::kable(M[1:5,1:5])
 
 ## All GWAS all_gwas
 
-## LD GWAS ld_gwas
+## LD GWAS
+
+The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted.
+
+The dataset `ld_gwas` requires the following variables:
+<ul>
+  <li>`chra`: numeric, the chromosome number for variant (a)</li>
+ 
+  <li>`posa`: numeric, the genomic position for variant (a)</li>
+  
+  <li>`chrb`: numeric, the chromosome number for variant (b)</li>
+ 
+  <li>`posb`: numeric, the genomic position for variant (b)</li>
+  
+  <li>`corrab`: numeric, LD between variant (a) and variant (b)</li>
+  
+  <li>`locus`: numeric, the locus in which these variants will be plotted (b)</li>
+</ul>
+
+Here is an example of `ld_gwas`:
+```{r}
+knitr::kable(ld_gwas[1:5,])
+```
+
 
 # Frequently Asked Questions
 

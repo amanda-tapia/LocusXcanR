@@ -37,12 +37,12 @@
 #' @importFrom magrittr "%>%"
 #' @importFrom tidyr "separate"
 #' @importFrom dplyr "filter","select","distinct"
-#' @importFrom plotly "renderPlotly","plotlyOutput","ggplotly"
+#' @importFrom plotly "renderPlotly","plotlyOutput","ggplotly","subplot","style"
 #' @importFrom visNetwork "renderVisNetwork","visNetworkOutput","visNetwork","visOptions"
 #' @importFrom data.table ":=","data.table","as.data.table"
 #' @importFrom shiny "fluidPage","h3","h4","HTML","tabPanel","tabsetPanel","br","hr","strong","navbarPage","h5","fixedPanel","p"
 #' @importFrom DT "formatStyle","styleEqual","datatable"
-#' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","geom_point","geom_hline","theme_bw","geom_segment","annotate"
+#' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","theme","element_blank","geom_point","geom_hline","xlim","ylim","theme_bw","geom_segment","annotate","geom_text"
 #' @importFrom utils "read.table"
 #' @importFrom stats "complete.cases"
 #'
@@ -92,7 +92,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
   
   
   # load known variants dataset
-  GWAS_sentinel <- read.table(known_variants, stringsAsFactors = F, header=T, sep = '\t')  
+  GWAS_sentinel <- read.table(known_variants, stringsAsFactors = F, header=T, sep = '\t')
+  
+  # get GWAS_sentinel column names
+  # GWAS_sentinel_col <- colnames(GWAS_sentinel)
+  
   
   
   # study gwas data (known variants at the locus)
@@ -296,7 +300,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                           secondary_result5,
                           
                           
-                          h4(strong("Table 1. Overall TWAS results from primary and secondary reference panels within the locus")),
+                          h4(strong("Overall TWAS results from primary and secondary reference panels within the locus")),
                           "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. ",
                           HTML('<span style="background-color:lightgreen"> Significant gene-trait associations highlighted in green. </span> <span style="background-color:tomato"> HLA genes / MHC regions / single SNP models highlighted in red. </span>'),
                           " MHC region is defined as GRCh37; chr6:28,477,797-33,448,354. Single SNP model indicates that the predictive expression model for the gene contained only a single SNP.",
@@ -445,8 +449,8 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     # })
     
     phenotbl <- reactive({
-      tmp <- filter(ds,(X6)>=xlow() & xhigh()>=(X6) & X5==locchr()) %>% select(X8)
-      colnames(tmp) <- c("Gene")
+      tmp <- filter(ds,(position)>=xlow() & xhigh()>=(position) & chr==locchr()) %>% select(genename)
+      #colnames(tmp) <- c("Gene")
       tmp
     })
     
@@ -458,7 +462,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       if (nrow(phenotbl())==0){
         tmp$kngene="Not Reported in GWAS"
       } else{
-        tmp$kngene <- ifelse(grepl(paste(unique(phenotbl()$Gene), collapse="|"),tmp$genename),
+        tmp$kngene <- ifelse(grepl(paste(unique(phenotbl()$genename), collapse="|"),tmp$genename),
                              "Reported in GWAS","Not Reported in GWAS")
       }
       tmp
@@ -486,8 +490,8 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     # TWAS/GWAS mirror plot
     output$TWASmirror <- renderPlotly({
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      yhigh <- max(locds$log10pval)+0.25*max(locds$log10pval)
+      #locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      yhigh <- max(locds()$log10pval)+0.25*max(locds()$log10pval)
 
 
       # select significant and known genes to plot
@@ -704,7 +708,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                             geom_point(aes(color=corgroup), pch=15) +
                             geom_segment(aes(x=genestartMB,y=log10pval,xend=genestopMB,yend=log10pval, color=corgroup),size=2) +
                             geom_text(aes(label=genename,color=corgroup),nudge_y = nudgeval) +
-                            scale_color_manual(breaks = breakval, values = colval) +
+                            scale_colour_manual(breaks = breakval, values = colval) +
                             # scale_color_manual(name = NULL,
                             #    values = colval,
                             #    breaks = breakval,
@@ -950,38 +954,39 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     output$CompRefGWB <- renderPlotly({
       
       # select primary_ref results
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      xhigh <- max(locds$genestop)+1000000
-      xlow <- max(0,min(locds$genestart)-1000000)
-      locchr <- unique(locds$chr)
+      #locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      #xhigh <- max(locds$genestop)+1000000
+      #xlow <- max(0,min(locds$genestart)-1000000)
+      #locchr <- unique(locds$chr)
  
       
       #####################
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locpheno() & chr==locchr #& 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & 
+                                                     chr==locchr() #& 
                                    #is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
+        select(genename,chr,pheno,genestart,genestop,genemid,log10pval)
       
-      locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+      locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
                                       pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
         select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
       
-      locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
-                                   ) %>%
-        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-      pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
-      
-      locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                      pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
-                                   ) %>%
-        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-      pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
+      # locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
+      #                                 pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+      #                              ) %>%
+      #   select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
+      # pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
+      # 
+      # locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
+      #                                 pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+      #                              ) %>%
+      #   select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
+      # pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
       
       
       #####################
@@ -991,11 +996,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","pheno"), all = T)
       primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
       
-      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","pheno"), all = T)
-      primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
-      
-      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","pheno"), all = T)
-      primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
+      # primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","pheno"), all = T)
+      # primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
+      # 
+      # primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","pheno"), all = T)
+      # primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
       
       
       #####################
@@ -1005,14 +1010,15 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       yhighprimary_ref_ <- max(primary_ref_gwb$log10pval.x, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.x, na.rm = T)
       nudgevalprimary_ref_ <- 0.05*yhighprimary_ref_
       
-      yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)
-      nudgevalgtl <- 0.05*yhighgtl
+      # yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)
+      # nudgevalgtl <- 0.05*yhighgtl
       
-      yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)
+      yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb,
+                                                                                  na.rm = T)
       nudgevalgwb <- 0.05*yhighgwb
       
-      yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)
-      nudgevalmsa <- 0.05*yhighmsa
+      # yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)
+      # nudgevalmsa <- 0.05*yhighmsa
       
       
       myColors <- setNames( c('#000000', '#56B4E9', '#E69F00'),
@@ -1026,21 +1032,24 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       # plot info for GWB
       atop <- ggplotly(ggplot(data=primary_ref_gwb, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
                          geom_point(pch=15) +
-                         geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), yend=log10pval.x), size=2) +
+                         geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), 
+                                          yend=log10pval.x), size=2) +
                          geom_text(aes(label=genename), nudge_y = nudgevalprimary_ref_) +
                          geom_hline(aes(yintercept=pthresh), lty=2, color='red') +
-                         xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
+                         xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
                          ylim(0,yhighprimary_ref_) +
                          theme_bw() +
                          theme(legend.position = 'top', legend.title = element_blank()) +
-                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, color='red',
-                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
+                         annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, 
+                                  color='red',
+                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e",
+                                                                                     digits = 2)),size=4) +
                          
                          colScale
       )
       
       atop <- atop %>% plotly::layout(yaxis = list(title = 'Primary ref TWAS -log10(p)'),
-                              xaxis = list(range=c(round(xlow/1000000,4),round(xhigh/1000000,4))),
+                              xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
                               annotations=list(x = 0.5 , y = 1.1, text = "(a) DGN vs. GWB", showarrow = F, 
                                                xref='paper', yref='paper',xanchor='center'),
                               legend = list(orientation='h', x=0, y=1),
@@ -1052,24 +1061,29 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       abottom <- ggplotly(ggplot(data=primary_ref_gwb, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
                             geom_hline(aes(yintercept=-pthreshgwb), lty=2, color='red') +
                             geom_point(pch=15) +
-                            geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
+                            geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, 
+                                             xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
                             geom_text(aes(label=genename), nudge_y = -1.5*nudgevalgwb) +
-                            xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
+                            xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
                             ylim(-yhighgwb,0) +
                             theme_bw() +
                             theme(legend.position = 'top', legend.title = element_blank()) +
-                            annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=-pthreshgwb-nudgevalgwb, color='red',
-                                     label=paste0("GWB TWAS p-value: ", formatC(10^-(pthreshgwb), format = "e", digits = 2)),size=4) +
+                            annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=-pthreshgwb-nudgevalgwb, 
+                                     color='red',
+                                     label=paste0("GWB TWAS p-value: ", formatC(10^-(pthreshgwb), format = "e", 
+                                                                                digits = 2)),size=4) +
                             colScale
       )
       
       abottom <- abottom %>% plotly::layout(yaxis = list(title = 'GWB TWAS log10(p)', 
                                                  range=c(-yhighgwb,0.1)),
-                                    xaxis = list(range=c(round(xlow/1000000,4),round(xhigh/1000000,4)), title="position (in Mb)"))
+                                    xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4)), 
+                                                 title="position (in Mb)"))
       
       #####
       
-      afig <- subplot(atop,style(abottom,showlegend=F),nrows=2,shareX = T, titleX = T, titleY = T, which_layout = 1, margin=.01)
+      afig <- subplot(atop,style(abottom,showlegend=F),nrows=2,shareX = T, titleX = T, titleY = T, which_layout = 1, 
+                      margin=.01)
       
     })
     
@@ -1077,69 +1091,71 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     output$CompRefGTL <- renderPlotly({
       
       # select primary_ref results
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      xhigh <- max(locds$genestop)+1000000
-      xlow <- max(0,min(locds$genestart)-1000000)
-      locchr <- unique(locds$chr)
+      #locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      #xhigh <- max(locds$genestop)+1000000
+      #xlow <- max(0,min(locds$genestart)-1000000)
+      #locchr <- unique(locds$chr)
      
       
       #####################
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locpheno() & chr==locchr 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & 
+                                                     chr==locchr() 
                                                    #& is.na(HLARegion) & is.na(MHCRegion)
                                                    ) %>%
         select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
       
-      locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
-                                   ) %>%
-        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-      pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
+      # locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
+      #                                pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+      #                              ) %>%
+      #   select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
+      # pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
       
-      locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+      locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
                                      pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
-        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
+        select(genename,chr,pheno,log10pval,genestart,genestop,genemid, SignifGene)
       pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
       
-      locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
-                                   ) %>%
-        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-      pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
+      # locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
+      #                                pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+      #                              ) %>%
+      #   select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
+      # pthreshmsa <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="MSA",])))
       
       
       #####################
       
       
       # merge secondary reference panel data sets with DGN
-      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","pheno"), all = T)
-      primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
+      # primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","pheno"), all = T)
+      # primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
       
       primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","pheno"), all = T)
       primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
       
-      primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","pheno"), all = T)
-      primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
+      # primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","pheno"), all = T)
+      # primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
       
       
       #####################
       
       
       # set y limit values for each plot
-      yhighprimary_ref_ <- max(primary_ref_gwb$log10pval.x, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.x, na.rm = T)
+      yhighprimary_ref_ <- max(primary_ref_gtl$log10pval.x, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.x, na.rm = T)
       nudgevalprimary_ref_ <- 0.05*yhighprimary_ref_
       
-      yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)
+      yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, 
+                                                                                  na.rm = T)
       nudgevalgtl <- 0.05*yhighgtl
       
-      yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)
-      nudgevalgwb <- 0.05*yhighgwb
-      
-      yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)
-      nudgevalmsa <- 0.05*yhighmsa
+      # yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)
+      # nudgevalgwb <- 0.05*yhighgwb
+      # 
+      # yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)
+      # nudgevalmsa <- 0.05*yhighmsa
       
       
       myColors <- setNames( c('#000000', '#56B4E9', '#E69F00'),
@@ -1153,20 +1169,23 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       # plot info for GTL
       btop <- ggplotly(ggplot(data=primary_ref_gtl, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
                          geom_point(pch=15) +
-                         geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), yend=log10pval.x), size=2) +
+                         geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), 
+                                          yend=log10pval.x), size=2) +
                          geom_text(aes(label=genename), nudge_y = nudgevalprimary_ref_) +
                          geom_hline(aes(yintercept=pthresh), lty=2, color='red') +
-                         xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
+                         xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
                          ylim(0,yhighprimary_ref_) +
                          theme_bw() +
                          theme(legend.position = 'top', legend.title = element_blank()) +
-                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, color='red',
-                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
+                         annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, 
+                                  color='red',
+                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e", 
+                                                                                     digits = 2)),size=4) +
                          colScale
       )
       
       btop <- btop %>% plotly::layout(yaxis = list(title = ' DGN TWAS -log10(p)'),
-                              xaxis = list(range=c(round(xlow/1000000,4),round(xhigh/1000000,4))),
+                              xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
                               annotations=list(x = 0.5 , y = 1.1, text = "(b) DGN vs. GTL", showarrow = F, 
                                                xref='paper', yref='paper',xanchor='center'),
                               legend = list(orientation='h', x=0, y=1),
@@ -1177,25 +1196,30 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       bbottom <- ggplotly(ggplot(data=primary_ref_gtl, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
                             geom_hline(aes(yintercept=-pthreshgtl), lty=2, color='red') +
                             geom_point(pch=15) +
-                            geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
+                            geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, 
+                                             xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
                             geom_text(aes(label=genename), nudge_y = -1.5*nudgevalgtl) +
-                            xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
+                            xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
                             ylim(-yhighgtl,0) +
                             theme_bw() +
                             theme(legend.position = 'top', legend.title = element_blank()) +
-                            annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=-pthreshgtl-nudgevalprimary_ref_, color='red',
-                                     label=paste0("GTL TWAS p-value: ", formatC(10^-(pthreshgtl), format = "e", digits = 2)),size=4) +
+                            annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=-pthreshgtl-nudgevalprimary_ref_, 
+                                     color='red',
+                                     label=paste0("GTL TWAS p-value: ", formatC(10^-(pthreshgtl), format = "e", 
+                                                                                digits = 2)),size=4) +
                             
                             colScale
       )
       
       bbottom <- bbottom %>% plotly::layout(yaxis = list(title = 'GTL TWAS log10(p)', 
                                                  range=c(-yhighgtl,0.1)),
-                                    xaxis = list(range=c(round(xlow/1000000,4),round(xhigh/1000000,4)), title="position (in Mb)"))
+                                    xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4)), 
+                                                 title="position (in Mb)"))
       
       #####
       
-      bfig <- subplot(btop,style(bbottom,showlegend=F),nrows=2,shareX = T, titleX = T, titleY = T, which_layout = 1, margin=0.01)
+      bfig <- subplot(btop,style(bbottom,showlegend=F),nrows=2,shareX = T, titleX = T, titleY = T, 
+                      which_layout = 1, margin=0.01)
       
     })
     
@@ -1204,34 +1228,34 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     output$CompRefMSA <- renderPlotly({
       
       # select primary_ref results
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      xhigh <- max(locds$genestop)+1000000
-      xlow <- max(0,min(locds$genestart)-1000000)
-      locchr <- unique(locds$chr)
+      #locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      #xhigh <- max(locds$genestop)+1000000
+      #xlow <- max(0,min(locds$genestart)-1000000)
+      #locchr <- unique(locds$chr)
 
       
       #####################
       
       
       # select reference panel specific results
-      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locpheno() & chr==locchr 
+      primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr() 
                                                    #& is.na(HLARegion) & is.na(MHCRegion)
                                                    ) %>%
         select(genename,chr, pheno,genestart,genestop,genemid,log10pval)
       
-      locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
-                                   ) %>%
-        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-      pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
+      # locgwb <- twas_ds %>% filter(tissue=="GWB" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
+      #                                pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+      #                              ) %>%
+      #   select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
+      # pthreshgwb <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GWB",])))
+      # 
+      # locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
+      #                                pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
+      #                              ) %>%
+      #   select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
+      # pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
       
-      locgtl <- twas_ds %>% filter(tissue=="GTL" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
-                                     pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
-                                   ) %>%
-        select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-      pthreshgtl <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue=="GTL",])))
-      
-      locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow & genestop<=xhigh & chr==locchr & 
+      locmsa <- twas_ds %>% filter(tissue=="MSA" & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
                                      pheno==locpheno() #& is.na(HLARegion) & is.na(MHCRegion)
                                    ) %>%
         select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
@@ -1242,11 +1266,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # merge secondary reference panel data sets with primary ref
-      primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","pheno"), all = T)
-      primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
-      
-      primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","pheno"), all = T)
-      primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
+      # primary_ref_gwb <- merge(primary_ref_tbl,locgwb, by=c("genename","chr","pheno"), all = T)
+      # primary_ref_gwb$inboth <- ifelse(complete.cases(primary_ref_gwb$log10pval.x,primary_ref_gwb$log10pval.y),"In Both","Not in Both")
+      # 
+      # primary_ref_gtl <- merge(primary_ref_tbl,locgtl, by=c("genename","chr","pheno"), all = T)
+      # primary_ref_gtl$inboth <- ifelse(complete.cases(primary_ref_gtl$log10pval.x,primary_ref_gtl$log10pval.y),"In Both","Not in Both")
       
       primary_ref_msa <- merge(primary_ref_tbl,locmsa, by=c("genename","chr","pheno"), all = T)
       primary_ref_msa$inboth <- ifelse(complete.cases(primary_ref_msa$log10pval.x,primary_ref_msa$log10pval.y),"In Both","Not in Both")
@@ -1256,16 +1280,17 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # set y limit values for each plot
-      yhighprimary_ref_ <- max(primary_ref_gwb$log10pval.x, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.x, na.rm = T)
+      yhighprimary_ref_ <- max(primary_ref_msa$log10pval.x, na.rm = T)+0.15*max(primary_ref_msa$log10pval.x, na.rm = T)
       nudgevalprimary_ref_ <- 0.05*yhighprimary_ref_
       
-      yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)
-      nudgevalgtl <- 0.05*yhighgtl
+      # yhighgtl <- max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)+0.15*max(primary_ref_gtl$log10pval.y,pthreshgtl, na.rm = T)
+      # nudgevalgtl <- 0.05*yhighgtl
+      # 
+      # yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)
+      # nudgevalgwb <- 0.05*yhighgwb
       
-      yhighgwb <- max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)+0.15*max(primary_ref_gwb$log10pval.y,pthreshgwb, na.rm = T)
-      nudgevalgwb <- 0.05*yhighgwb
-      
-      yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)
+      yhighmsa <- max(primary_ref_msa$log10pval.y,pthreshmsa, na.rm = T)+0.15*max(primary_ref_msa$log10pval.y,pthreshmsa, 
+                                                                                  na.rm = T)
       nudgevalmsa <- 0.05*yhighmsa
       
       
@@ -1280,20 +1305,23 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       # plot info for MSA
       ctop <- ggplotly(ggplot(data=primary_ref_msa, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
                          geom_point(pch=15) +
-                         geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), yend=log10pval.x), size=2) +
+                         geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), 
+                                          yend=log10pval.x), size=2) +
                          geom_text(aes(label=genename), nudge_y = nudgevalprimary_ref_) +
                          geom_hline(aes(yintercept=pthresh), lty=2, color='red') +
-                         xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
+                         xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
                          ylim(0,yhighprimary_ref_) +
                          theme_bw() +
                          theme(legend.position = 'top', legend.title = element_blank()) +
-                         annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, color='red',
-                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e", digits = 2)),size=4) +
+                         annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, 
+                                  color='red',
+                                  label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e",
+                                                                                     digits = 2)),size=4) +
                          colScale
       )
       
       ctop <- ctop %>% plotly::layout(yaxis = list(title = 'DGN TWAS -log10(p)'),
-                              xaxis = list(range=c(round(xlow/1000000,4),round(xhigh/1000000,4))),
+                              xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
                               annotations=list(x = 0.5 , y = 1.1, text = "(c) DGN vs. MSA", showarrow = F, 
                                                xref='paper', yref='paper',xanchor='center'),
                               legend = list(orientation='h', x=0, y=1),
@@ -1304,20 +1332,24 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       cbottom <- ggplotly(ggplot(data=primary_ref_msa, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
                             geom_hline(aes(yintercept=-pthreshmsa), lty=2, color='red') +
                             geom_point(pch=15) +
-                            geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
+                            geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, 
+                                             xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
                             geom_text(aes(label=genename), nudge_y = -1.5*nudgevalmsa) +
-                            xlim(round(xlow/1000000,4),round(xhigh/1000000,4)) +
+                            xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
                             theme_bw() +
                             ylim(-yhighmsa-2,0) +
-                            annotate(geom="text",x=round(xlow/1000000,4)+.370000, y=-pthreshmsa-nudgevalprimary_ref_, color='red',
-                                     label=paste0("MSA TWAS p-value: ", formatC(10^-(pthreshmsa), format = "e", digits = 2)),size=4) +
+                            annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=-pthreshmsa-nudgevalprimary_ref_, 
+                                     color='red',
+                                     label=paste0("MSA TWAS p-value: ", formatC(10^-(pthreshmsa), format = "e", 
+                                                                                digits = 2)),size=4) +
                             
                             colScale
       )
       
       cbottom <- cbottom %>% plotly::layout(yaxis = list(title = 'MSA TWAS log10(p)', 
                                                  range=c(-yhighmsa,0.1)),
-                                    xaxis = list(range=c(round(xlow/1000000,4),round(xhigh/1000000,4)), title="position (in Mb)"))
+                                    xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4)), 
+                                                 title="position (in Mb)"))
       
       #####
       
@@ -1632,75 +1664,83 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     
     # Table of known variants
     output$KnownSNPtbl <- DT::renderDataTable({
-      locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
-      xhigh <- max(locds$genestop)+1000000
-      xlow <- max(0,min(locds$genestart)-1000000)
-      locpheno<-unique(locds$pheno) #locus phenotype category
-      locph<-unique(locds$pheno) #locus phenotype
-      locchr<- unique(locds$chr) #locus chromosome
+      #locds <- primary_ref_ds %>% filter(locvar==input$locuslst)
+      #xhigh <- max(locds$genestop)+1000000
+      #xlow <- max(0,min(locds$genestart)-1000000)
+      locpheno<-unique(locds()$pheno) #locus phenotype category
+      locph<-unique(locds()$pheno) #locus phenotype
+      #locchr<- unique(locds$chr) #locus chromosome
       
 
       ds=GWAS_sentinel
       
       # select all known snps at locus
-      phenotbl <- ds %>% filter(X6>=xlow & xhigh>=X6 & X5==locchr) %>%
-        select(X1,X2,X3,X4,X5,X6,X8,X9,X10,X11,X12,X13,X14,X15,X21)
-      colnames(phenotbl) <- c("RSID", "Reference", "Ancestry", "Trait", "Chr", "Pos_b37", "Gene", "Effect Allele",
-                              "Other Allele", "EAF", "Beta", "SE", "P", "N","In Kaiser")
+      phenotbl <- ds %>% filter(position>=xlow() & xhigh()>=position & chr==locchr()) #%>%
+        #select(X1,X2,X3,X4,X5,X6,X8,X9,X10,X11,X12,X13,X14,X15,X21)
+      #colnames(phenotbl) <- c("RSID", "Reference", "Ancestry", "Trait", "Chr", "Pos_b37", "Gene", "Effect Allele",
+      #                        "Other Allele", "EAF", "Beta", "SE", "P", "N","In Kaiser")
       
       if (nrow(phenotbl)==0){
         #df <- data.frame(a="No reported GWAS variants at this locus")
-        datatable(phenotbl,
-                  options=list(columnDefs = list(list(visible=FALSE, targets=c(15,16,17,18,19,20,21,22,23)))))
+        datatable(phenotbl)#,
+                  #options=list(columnDefs = list(list(visible=FALSE, targets=c(15,16,17,18,19,20,21,22,23)))))
       } else {
         
         # select set of TWAS insignificant genes
-        primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow & genestop<=xhigh & pheno==locph & chr==locchr &
+        primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & pheno==locph & chr==locchr() &
                                      SignifGene==0  #& is.na(HLARegion) & is.na(MHCRegion)
                                      ) %>% select(genename)
         
         # indicator for significant TWAS gene pattern 
-        phenotbl$X16 <- ifelse(grepl(paste(unique(locds$genename), collapse="|"),phenotbl$Gene),1,0)
+        phenotbl$signiftwas <- ifelse(grepl(paste(unique(locds()$genename), collapse="|"),phenotbl$genename),1,0)
         
         # indicator for non-significant TWAS gene pattern
-        phenotbl$X17 <- ifelse(grepl(paste(unique(primary_ref_tbl$genename),collapse="|"),phenotbl$Gene),1,0)
+        phenotbl$nonsigniftwas <- ifelse(grepl(paste(unique(primary_ref_tbl$genename),collapse="|"),phenotbl$genename),1,0)
         
         # indicator for gene not predicted in primary tissue
-        phenotbl$notpred <- ifelse(grepl(paste(ref_panel_genes$genename[ref_panel_genes$genestatus==0],collapse = "|"),phenotbl$Gene),1,0)
-        phenotbl$notprimary_ref <- ifelse(grepl(paste(ref_panel_genes$genename[ref_panel_genes$genestatus==1],collapse="|"),phenotbl$Gene),1,0)
+        phenotbl$notpred <- ifelse(grepl(paste(ref_panel_genes$genename[ref_panel_genes$genestatus==0],collapse = "|"),phenotbl$genename),1,0)
+        phenotbl$notprimary_ref <- ifelse(grepl(paste(ref_panel_genes$genename[ref_panel_genes$genestatus==1],collapse="|"),phenotbl$genename),1,0)
         
-        phenotbl$chrposall <- paste0(phenotbl$Chr,":",phenotbl$Pos_b37,":",phenotbl$`Effect Allele`,":",phenotbl$`Other Allele`)
-        phenotbl$chrposall2 <- paste0(phenotbl$Chr,":",phenotbl$Pos_b37,":",phenotbl$`Other Allele`,":",phenotbl$`Effect Allele`)
+        phenotbl$chrposall <- paste0(phenotbl$chr,":",phenotbl$position,":",phenotbl$`effectallele`,":",phenotbl$`otherallele`)
+        phenotbl$chrposall2 <- paste0(phenotbl$chr,":",phenotbl$position,":",phenotbl$`otherallele`,":",phenotbl$`effectallele`)
         
         # indicator for snps included in GWAS results
         locgwas <- cohort_gwas_knownfin %>% filter(Locus==locnum()) %>% select(SNP)
         phenotbl$X19 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall),1,0)
         phenotbl$X20 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall2),1,0)
         
+        # find target numbers for variable numbers we don't want to print
+        phenotblcols <- ncol(phenotbl)
+        phenotbltarg <- phenotblcols-7
+        targetlst <- seq(to=phenotblcols,from=phenotbltarg,by=1)
+        targetlstfin <- targetlst[targetlst != (phenotblcols-3)]
+        
         # print data table
-        datatable(phenotbl, #rownames=FALSE,
+        datatable(phenotbl , #rownames=FALSE,
                   options=list(columnDefs = list(list(visible=FALSE, 
-                                                      targets=c(15,16,17,18,19,20,21,22,23))))
-        ) %>%
-          formatStyle("Gene", "X16", backgroundColor = styleEqual(
+                  #                                    targets=c(15,16,17,18,19,20,21,22,23))))
+                  #                                   targets=c("X19","X20"))))
+                   targets=c(targetlstfin))))
+                  ) %>%
+          formatStyle("genename", "signiftwas", backgroundColor = styleEqual(
             c(1), c("lightgreen"))
           ) %>% 
-          formatStyle("In Kaiser", target = "row",
+          formatStyle("incohort", target = "row",
                       backgroundColor = styleEqual(c(0), c('red'))
           ) %>%
-          formatStyle("Gene", "X17", backgroundColor = styleEqual(
+          formatStyle("genename", "nonsigniftwas", backgroundColor = styleEqual(
             c(1), c("yellow"))
           ) %>%
-          formatStyle("RSID", "X19", backgroundColor = styleEqual(
+          formatStyle("chrposall", "X19", backgroundColor = styleEqual(
             c(1), c("lightgreen"))
           ) %>%
-          formatStyle("RSID", "X20", backgroundColor = styleEqual(
+          formatStyle("chrposall", "X20", backgroundColor = styleEqual(
             c(1), c("lightgreen"))
           ) %>%
-          formatStyle("Gene", "notpred", backgroundColor = styleEqual(
+          formatStyle("genename", "notpred", backgroundColor = styleEqual(
             c(1), c("orange"))
           ) %>%
-          formatStyle("Gene", "notprimary_ref", backgroundColor = styleEqual(
+          formatStyle("genename", "notprimary_ref", backgroundColor = styleEqual(
             c(1), c("red"))
           )
       }

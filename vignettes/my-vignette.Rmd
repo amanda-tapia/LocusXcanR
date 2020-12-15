@@ -47,6 +47,8 @@ load(file.path(rdir,"pred_exp_corr.Rdata"))
 db_genes <- read.table(file.path(dir, "db_genes.txt"), header=T, stringsAsFactors = F)
 
 all_gwas <- read.table(file.path(dir, "all_gwas.txt"), header=T, stringsAsFactors = F)
+
+weight_tbl <- read.table(file.path(dir, "weight_tbl.txt"), header=T, stringsAsFactors = F)
 ```
 
 # LocusXcanR Function
@@ -187,10 +189,36 @@ knitr::kable(M[1:5,1:5])
 
 ## Weights table (`weight_tbl`)
 
+The `weight_tbl` dataset contains a set of genes from the primary gene expression reference panel along with their corresponding predictive model variant weights. This data set is used to connect TWAS genes to their respective GWAS model variants and report the weight and direction of the effect.
+
+The dataset `weight_tbl` requires the following variables:
+
+<ul>
+  <li>`rsid`: character, the RSID of the model variant</li>
+ 
+  <li>`gene`: character, the name of the gene</li>
+  
+  <li>`weight`: numeric, the weight corresponding to the effect of the model variant on the gene</li>
+  
+  <li>`ref_allele`: character, the reference allele</li>
+  
+  <li>`eff_allele`: character, the effect allele</li>
+
+  <li>`chr`: numeric, chromosome number</li>
+  
+  <li>`position`: numeric, genomic position of the model variant</li>
+</ul>
+
+Here is an example of `weight_tbl`:
+```{r}
+knitr::kable(weight_tbl[c(1:5),])
+```
+
+
 ## Known variants dataset (`known_variants`)
 
 
-## DB genes (`db_genes`)
+## Reference panel genes (`db_genes`)
 
 The `db_genes` dataset contains a list of genes from the primary gene expression reference panel that were either not predicted in the analytic cohort or no gene expression model was fit for the gene. This data set is used to determine whether there are any genes from the reference panel which were not predicted in the analytic cohort or no gene expression model was fit for the gene, but one or more GWAS sentinel variants implicate the gene as potentially causal.
 
@@ -232,6 +260,10 @@ Here is an example of `ld_gwas`:
 knitr::kable(ld_gwas[1:5,])
 ```
 
+
+# Example function
+
+# Publishing your Shiny app
 
 # Frequently Asked Questions
 

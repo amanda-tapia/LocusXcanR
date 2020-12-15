@@ -7,7 +7,6 @@ Maintainer: Amanda Tapia <altapia@live.unc.edu>
 Description: What the package does (one paragraph).
 Depends: R (>= 3.5.0),
          DT,
-         plotly,
          tidyr
 Imports: RColorBrewer,
          ggplot2,
@@ -16,7 +15,8 @@ Imports: RColorBrewer,
          data.table,
          shiny,
          dplyr,
-         visNetwork
+         visNetwork,
+         plotly
 License: A license is not available.
 LazyData: true
 RoxygenNote: 7.1.1

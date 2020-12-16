@@ -62,6 +62,7 @@ The `LocusXcanR` function takes several datasets as input, including TWAS result
 LocusXcanR(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE)
 ```
 
+## Required parameters
 The `LocusXcanR` function contains the following **required** parameters and their definitions:
 <ul>
   <li>`twas_result`: character, file path to TWAS results (required). See TWAS results dataset section below for more details.</li>
@@ -84,7 +85,8 @@ The `LocusXcanR` function contains the following **required** parameters and the
   
 </ul>
   
-
+  
+## Optional parameters
 The `LocusXcanR` function contains the following **optional** parameters and their definitions:
 <ul>
   <li>`study_name`: character, the name of the study/cohort (optional, default is missing). For example `study_name = "Genetic Epidemiology on Adult Health and Aging"` or `study_name = "GERA"`.</li>

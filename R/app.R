@@ -9,6 +9,7 @@
 #' Created by: Amanda L. Tapia, Date: 06/08/2020
 #'
 #' @param twas_result character, file path to TWAS results (required). See Details for required column names.
+#' @param pvalthresh numeric, -log10 p-value threshold for TWAS results (required).
 #' @param weight_tbl character, file path to TWAS weights database (required). See Details for required column names.
 #' @param known_variants character, file path to known GWAS variants (required). See Details for required column names.
 #' @param pred_exp_corr character, file path to predicted expression correlation (required). See Details for required column names.
@@ -84,7 +85,7 @@
 
 #' @export
 
-LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
+LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
                       known_variants,known_gwas,db_genes,all_gwas,ld_gwas,ref_expr_name="",head_details="",method_details="",
                       primary_tissue,meta_present=FALSE,meta_thresh){
   
@@ -185,7 +186,8 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
   
   
   # p-value threshold for primary reference panel
-  pthresh <- -log10(0.05/(nrow(primary_ref_ds)))
+  #pthresh <- -log10(0.05/(nrow(primary_ref_ds)))
+  pthresh <- pvalthresh
   
   # number of significant TWAS genes
   # signifrow <- primary_ref_ds %>% filter(SignifGene==1 & is.na(HLARegion) & is.na(MHCRegion)
@@ -1822,9 +1824,18 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     output$GWASvars <- DT::renderDataTable({
       locgwas <- cohort_gwas_knownfin %>% filter(Locus==locnum())
       
+      # find target numbers for variable numbers we don't want to print
+      snpcolnum <- match("SNP",names(cohort_gwas_knownfin)) #col num of SNP variable
+      cohort_gwas_cols <- ncol(cohort_gwas_knownfin) #total num of cols
+      targetlst1 <- seq(to=snpcolnum+4,from=snpcolnum+1,by=1)
+      targetlst2 <- seq(to=cohort_gwas_cols, from=cohort_gwas_cols-1,by=1)
+      targetlstfin <- c(targetlst1,targetlst2)
+      
       # print data table
       datatable(locgwas, #rownames=F, 
-                options=list(columnDefs = list(list(visible=FALSE, targets=c(2,3,4,5,9,10,11)))))
+                options=list(columnDefs = list(list(visible=FALSE, 
+                                                    targets=targetlstfin)))
+                )
     })
     
   }

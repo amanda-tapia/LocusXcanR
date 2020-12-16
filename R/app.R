@@ -44,7 +44,7 @@
 #' @importFrom DT "formatStyle","styleEqual","datatable"
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","theme","element_blank","geom_point","geom_hline","xlim","ylim","theme_bw","geom_segment","annotate","geom_text"
 #' @importFrom utils "read.table"
-#' @importFrom stats "complete.cases"
+#' @importFrom stats "complete.cases","setNames"
 #'
 #
 ####################################################################
@@ -425,7 +425,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
     locchr <-   reactive({ unique(locds()$chr) })
     locpheno <- reactive({ unique(locds()$pheno) })
     #locphcat <- reactive({ unique(locds()$phenocat) })
-    loctitle <- reactive({ paste0("chr ",locchr(),": ",xlow(),", ",xhigh(),"; trait = ",locpheno())
+    loctitle <- reactive({ paste0("chr ",locchr(),": ",xlow()," - ",xhigh(),"; trait = ",locpheno())
       })
     
     # set the dataset to extract known variants at the locus
@@ -559,8 +559,13 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
           pvalplt <- primary_ref_tblplt$log10pval
       }
       
+      #colnames(primary_ref_tblplt)[colnames(primary_ref_tblplt) == "genemidMB"] <- "gene midpoint"
+      
       # TWAS plot
-      p <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=genemidMB, y=pvalplt, color=as.factor(kngene))) + 
+      p <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=genemidMB, y=pvalplt, 
+                                                        color=as.factor(kngene),
+                                                        text = paste("Gene: ",genename,
+                                                                     "<br>-log10 p-value: ",round(pvalplt,3)))) + 
                       geom_point(pch=15) +
                       geom_segment(aes(x = genestartMB, y = pvalplt, xend = genestopMB, yend = pvalplt, color=as.factor(kngene)), size=2) +
                       geom_text(aes(x=genemidMB,y=pvalplt,label=genename,color=as.factor(kngene)), nudge_y = nudgeval, size=4) +
@@ -571,14 +576,17 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                       theme(legend.position = 'top', legend.title = element_blank()) +
                       theme_bw() +
                       colScale
-      )
+      , tooltip=c("text"))
       
       p <- p %>% plotly::layout(title = list(text=loctitle(), x=0, xanchor='left', y=.99),
                         yaxis = list(title = ' TWAS -log10(p)'),
                         legend = list(orientation='h', x=0, y=1))
       
       
-      plta <- ggplot(data=gwaslocnotkn, aes(x=round(as.numeric(pos)/1000000,4),y=poslog10p, color=as.factor(knsnp))) + 
+      plta <- ggplot(data=gwaslocnotkn, aes(x=round(as.numeric(pos)/1000000,4),y=poslog10p, 
+                                            color=as.factor(knsnp),
+                                            text = paste("position: ",as.numeric(pos),
+                                                         "<br>log10 p-value: ",round(poslog10p,3)))) + 
         geom_point() +
         geom_hline(aes(yintercept=(log10(5*10^(-8)))), lty=2, color="red") +
         xlim(xlowMB(),xhighMB()) + ylim(ylow,0) +
@@ -596,7 +604,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       }
       
       # GWAS plot
-      m <- ggplotly(app_plt)
+      m <- ggplotly(app_plt, tooltip=c("text"))
       
       m <- m %>% plotly::layout(xaxis = list(title="position (in Mb)"), 
                         yaxis=list(title="GWAS log10(p)"))
@@ -657,7 +665,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       primary_ref_wtgwasloc <- rbind(primary_ref_wtgwasloc1,primary_ref_wtgwasloc2)
       
       # merge GWAS results with TWAS info
-      TWASloc <- corplt %>% select(gene,genename,genestartMB,genemid,genestopMB,log10pval,corgroup)
+      TWASloc <- corplt %>% select(gene,genename,genestartMB,genemid,genestopMB,log10pval,corgroup,corr)
       TWASloc$genemidMB <- round(TWASloc$genemid/1000000,4)
       primary_ref_wtgwaslocfin <- merge(primary_ref_wtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
       
@@ -699,13 +707,18 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
 
       # plot correlation categories at the locus, like locus zoom plot
-      loczoom <- ggplotly(ggplot(data=corplt, aes(x=round(genemid/1000000,4), y=log10pval)) +
+      loczoom <- ggplotly(ggplot(data=corplt, aes(x=round(genemid/1000000,4), y=log10pval,color=corgroup,
+                                                  text = paste("Gene: ",genename,
+                                                               "<br>-log10 p-value: ",round(log10pval,3),
+                                                               "<br>correlation: ",round(corr,3)))) +
                             geom_hline(aes(yintercept=pthresh), lty=2, color="red") +
                             geom_hline(aes(yintercept=log10(5*10^(-8))), lty=2, color="red") +
                             geom_hline(aes(yintercept=0),size=1,color='black') +
+                            
                             geom_segment(data=primary_ref_wtgwaslocfin2_comp,aes(x=round(position/1000000,4),y=poslog10p,xend=genemidMB,yend=log10pval
                                                                         ,color=ldgroup)) +
-                            geom_point(aes(color=corgroup), pch=15) +
+                            geom_point(data=primary_ref_wtgwaslocfin2_comp,
+                                       aes(color=corgroup), pch=15) +
                             geom_segment(aes(x=genestartMB,y=log10pval,xend=genestopMB,yend=log10pval, color=corgroup),size=2) +
                             geom_text(aes(label=genename,color=corgroup),nudge_y = nudgeval) +
                             scale_colour_manual(breaks = breakval, values = colval) +
@@ -722,8 +735,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                             theme(legend.position = 'top', legend.title = element_blank()) +
                             #annotate(geom="text",x=round((xlow()+270000)/1000000,4), y=pthresh-nudgeval, color='red',
                             #         label=paste0("TWAS p-value: ",formatC(10^(-pthresh), format = "e", digits = 2)),size=4) +
-                            geom_point(data=primary_ref_wtgwaslocfin2_comp, aes(x=round(position/1000000,4),y=poslog10p,color=ldgroup)) #+
-      )
+                            geom_point(data=primary_ref_wtgwaslocfin2_comp, aes(x=round(position/1000000,4),y=poslog10p,color=ldgroup,
+                                                                                text = paste("Position: ",position,
+                                                                                             "<br>log10 p-value: ",round(poslog10p,3),
+                                                                                             "<br>LD: ",round(corrab,3)))) #+
+      , tooltip=c("text"))
       
       loczoom <- loczoom %>% plotly::layout(title = list(text=loctitle(), x=0, xanchor='left', y=.99),
                                     yaxis = list(title = '<-- GWAS log10(p) ... 0 ... TWAS -log10(p) -->'),
@@ -897,7 +913,10 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       
       # TWAS plot
-      p <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=round(genemid/1000000,4), y=log10pval, color=as.factor(kngene))) +
+      p <- ggplotly(ggplot(data=primary_ref_tblplt, 
+                           aes(x=round(genemid/1000000,4), y=log10pval, color=as.factor(kngene),
+                               text = paste("Gene: ",genename,
+                                            "<br>-log10 p-value: ",round(log10pval,3)))) +
                       geom_point(pch=15) +
                       geom_segment(aes(x = genestartMB, y = log10pval, xend = genestopMB, yend = log10pval,
                                        color=as.factor(kngene)), size=2) +
@@ -911,14 +930,18 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                       theme(legend.position = 'top', legend.title = element_blank()) +
                       theme_bw() +
                       colScale
-      )
+      , tooltip = c("text"))
       
       p <- p %>% plotly::layout(title = list(text=loctitle(), x=0, xanchor='left', y=.99),
                         yaxis = list(title = ' TWAS -log10(p)'),
                         legend = list(orientation='h', x=0, y=1))
       
       # Meta-analysis plot
-      m <- ggplotly(ggplot(data=primary_ref_tblplt, aes(x=round(genemid/1000000,4), y=-log10pvalmeta, color=as.factor(kngene))) +
+      m <- ggplotly(ggplot(data=primary_ref_tblplt, 
+                           aes(x=round(genemid/1000000,4), y=-log10pvalmeta, 
+                               color=as.factor(kngene),
+                               text = paste("Gene: ",genename,
+                                            "<br>log10 p-value: ",round(-log10pvalmeta,3)))) +
                       geom_point(pch=15) +
                       geom_segment(aes(x = genestartMB, y = -log10pvalmeta, xend = genestopMB, yend = -log10pvalmeta,
                                        color=as.factor(kngene)), size=2) +
@@ -935,7 +958,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                       theme(legend.position = 'top', legend.title = element_blank()) +
                       theme_bw() +
                       colScale
-      )
+      , tooltip = c("text"))
       
       m <- m %>% plotly::layout(xaxis = list(title="position (in Mb)"),
                         yaxis=list(title="Meta-analysis log10(p)"))
@@ -1030,7 +1053,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       ####################
       
       # plot info for GWB
-      atop <- ggplotly(ggplot(data=primary_ref_gwb, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
+      atop <- ggplotly(ggplot(data=primary_ref_gwb, 
+                              aes(x=round(genemid.x/1000000,4),
+                                  y=log10pval.x, color=inboth,
+                                  text = paste("Gene: ",genename,
+                                               "<br>-log10 p-value: ",round(log10pval.x,3)))) +
                          geom_point(pch=15) +
                          geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), 
                                           yend=log10pval.x), size=2) +
@@ -1046,7 +1073,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                                                                                      digits = 2)),size=4) +
                          
                          colScale
-      )
+      , tooltip = "text")
       
       atop <- atop %>% plotly::layout(yaxis = list(title = 'Primary ref TWAS -log10(p)'),
                               xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
@@ -1058,7 +1085,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       #####
       
-      abottom <- ggplotly(ggplot(data=primary_ref_gwb, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
+      abottom <- ggplotly(ggplot(data=primary_ref_gwb, 
+                                 aes(x=round(genemid.y/1000000,4),
+                                     y=-log10pval.y, color=inboth,
+                                     text = paste("Gene: ",genename,
+                                                  "<br>log10 p-value: ",round(-log10pval.y,3)))) +
                             geom_hline(aes(yintercept=-pthreshgwb), lty=2, color='red') +
                             geom_point(pch=15) +
                             geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, 
@@ -1073,7 +1104,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                                      label=paste0("GWB TWAS p-value: ", formatC(10^-(pthreshgwb), format = "e", 
                                                                                 digits = 2)),size=4) +
                             colScale
-      )
+      , tooltip = "text")
       
       abottom <- abottom %>% plotly::layout(yaxis = list(title = 'GWB TWAS log10(p)', 
                                                  range=c(-yhighgwb,0.1)),
@@ -1167,7 +1198,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       ####################
       
       # plot info for GTL
-      btop <- ggplotly(ggplot(data=primary_ref_gtl, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
+      btop <- ggplotly(ggplot(data=primary_ref_gtl, 
+                              aes(x=round(genemid.x/1000000,4),
+                                  y=log10pval.x, color=inboth,
+                                  text = paste("Gene: ",genename,
+                                               "<br>-log10 p-value: ",round(log10pval.x,3)))) +
                          geom_point(pch=15) +
                          geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), 
                                           yend=log10pval.x), size=2) +
@@ -1182,7 +1217,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                                   label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e", 
                                                                                      digits = 2)),size=4) +
                          colScale
-      )
+      , tooltip = "text")
       
       btop <- btop %>% plotly::layout(yaxis = list(title = ' DGN TWAS -log10(p)'),
                               xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
@@ -1193,7 +1228,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       #####
       
-      bbottom <- ggplotly(ggplot(data=primary_ref_gtl, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
+      bbottom <- ggplotly(ggplot(data=primary_ref_gtl, 
+                                 aes(x=round(genemid.y/1000000,4),
+                                     y=-log10pval.y, color=inboth,
+                                     text = paste("Gene: ",genename,
+                                                  "<br>log10 p-value: ",round(-log10pval.y,3)))) +
                             geom_hline(aes(yintercept=-pthreshgtl), lty=2, color='red') +
                             geom_point(pch=15) +
                             geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, 
@@ -1209,7 +1248,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                                                                                 digits = 2)),size=4) +
                             
                             colScale
-      )
+                          , tooltip = "text")
       
       bbottom <- bbottom %>% plotly::layout(yaxis = list(title = 'GTL TWAS log10(p)', 
                                                  range=c(-yhighgtl,0.1)),
@@ -1303,7 +1342,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       ####################
       
       # plot info for MSA
-      ctop <- ggplotly(ggplot(data=primary_ref_msa, aes(x=round(genemid.x/1000000,4),y=log10pval.x, color=inboth)) +
+      ctop <- ggplotly(ggplot(data=primary_ref_msa, 
+                              aes(x=round(genemid.x/1000000,4),
+                                  y=log10pval.x, color=inboth,
+                                  text = paste("Gene: ",genename,
+                                               "<br>-log10 p-value: ",round(log10pval.x,3)))) +
                          geom_point(pch=15) +
                          geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), 
                                           yend=log10pval.x), size=2) +
@@ -1318,7 +1361,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                                   label=paste0("Primary ref TWAS p-value: ", formatC(10^-(pthresh), format = "e",
                                                                                      digits = 2)),size=4) +
                          colScale
-      )
+      , tooltip = "text")
       
       ctop <- ctop %>% plotly::layout(yaxis = list(title = 'DGN TWAS -log10(p)'),
                               xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
@@ -1329,7 +1372,11 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
       
       #####
       
-      cbottom <- ggplotly(ggplot(data=primary_ref_msa, aes(x=round(genemid.y/1000000,4),y=-log10pval.y, color=inboth)) +
+      cbottom <- ggplotly(ggplot(data=primary_ref_msa, 
+                                 aes(x=round(genemid.y/1000000,4),
+                                     y=-log10pval.y, color=inboth,
+                                     text = paste("Gene: ",genename,
+                                                  "<br>log10 p-value: ",round(-log10pval.y,3)))) +
                             geom_hline(aes(yintercept=-pthreshmsa), lty=2, color='red') +
                             geom_point(pch=15) +
                             geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, 
@@ -1344,7 +1391,7 @@ LocusXcanR <- function(twas_result,weight_tbl,study_name="",pred_exp_corr,condit
                                                                                 digits = 2)),size=4) +
                             
                             colScale
-      )
+      , tooltip = "text")
       
       cbottom <- cbottom %>% plotly::layout(yaxis = list(title = 'MSA TWAS log10(p)', 
                                                  range=c(-yhighmsa,0.1)),

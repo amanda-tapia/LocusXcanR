@@ -16,7 +16,8 @@ Imports: RColorBrewer,
          visNetwork,
          plotly,
          DT,
-         stats
+         stats,
+         Gviz
 LazyData: true
 RoxygenNote: 7.1.1
 License: Example

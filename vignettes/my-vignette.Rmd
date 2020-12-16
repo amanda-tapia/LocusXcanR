@@ -36,13 +36,12 @@ Thus, in order to facilitate the interpretation of TWAS findings, we present an 
 
 ```{r, include=FALSE}
 dir <- system.file("extdata", package="LocusXcanR")
-rdir <- system.file("data", package="LocusXcanR")
 
 twas_ds <- read.table(file.path(dir, "twas_ds.txt"), header=T, stringsAsFactors = F)
 
 ld_gwas <- read.table(file.path(dir, "ld_gwas.txt"), header=T, stringsAsFactors = F)
 
-load(file.path(rdir,"pred_exp_corr.Rdata"))
+load(file.path(dir,"pred_exp_corr.Rda"))
 
 db_genes <- read.table(file.path(dir, "db_genes.txt"), header=T, stringsAsFactors = F)
 

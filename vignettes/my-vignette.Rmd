@@ -50,19 +50,24 @@ all_gwas <- read.table(file.path(dir, "all_gwas.txt"), header=T, stringsAsFactor
 weight_tbl <- read.table(file.path(dir, "weight_tbl.txt"), header=T, stringsAsFactors = F)
 
 known_variants <- read.table(file.path(dir, "gwas_sentinel.txt"), header=T, stringsAsFactors = F)
+
+known_gwas <- read.table(file.path(dir, "known_gwas.txt"), header=T, stringsAsFactors = F)
+
 ```
 
 # LocusXcanR Function
 The `LocusXcanR` function takes several datasets as input, including TWAS results, GWAS results, gene expression reference panel weights,  GWAS LD, and predicted expression correlation. These results are then integrated into a single HTML webpage via R Shiny, and the interactive visualizations and data tables can then be used to facilitate TWAS results interpretation.
 
 ```
-LocusXcanR <- function(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE)
+LocusXcanR(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE)
 ```
 
 The `LocusXcanR` function contains the following **required** parameters and their definitions:
 <ul>
   <li>`twas_result`: character, file path to TWAS results (required). See TWAS results dataset section below for more details.</li>
   
+  <li>`pvalthresh`: numeric, -log10 p-value threshold for TWAS results.</li>
+
   <li>`weight_tbl`: character, file path to TWAS weights database (required). See Weights table section below for more details.</li>
   
   <li>`known_variants`: character, file path to known GWAS variants (required). See Known variants dataset section below for more details.</li>
@@ -230,6 +235,25 @@ knitr::kable(known_variants[c(1:5),])
 
 
 ## Known GWAS dataset (`known_gwas`)
+The `known_gwas` dataset contains a set of variants that are both included in the analytic cohort GWAS and are known sentinel GWAS variants from other GWAS studies. The dataset includes a variant identifier along with the anlaytic cohort GWAS p-value and the locus number in which you wish to plot the variant.
+
+The dataset `known_gwas` requires the following variables:
+
+<ul>
+  <li>`SNP`: character, an identifier for the analytic cohort GWAS variant</li>
+ 
+  <li>`PVAL`: numeric, the p-value for the analytic cohort GWAS variant </li>
+
+  <li>`Locus`: numeric, the locus number in which you wish to plot the variant </li>
+</ul>
+
+Additional fields may be included in the dataset. Any additional fields will be printed in the data table reported in the application.
+
+Here is an example of `known_gwas`:
+```{r}
+knitr::kable(known_gwas[c(1:5),])
+```
+
 
 
 ## Predicted expression correlation dataset (`pred_exp_corr`)
@@ -305,6 +329,34 @@ header_details = "All genomic positions are from GRCh37.<p>TWAS results for 10 t
 ```
 
 ## What can I include in my method details?
+Similar to `header_details`, the `method_details` parameter is a character string parameter which may include simple text characters and/or HTML formatting commands. Additionally, `method_details` may include R shiny functions as follows.
+
+For example, you could save the following code in a script called `methods.R`:
+```
+shiny::tabPanel("Methods",
+  shiny::h3(shiny::strong("Methods")),
+  "A current draft of the manuscript describing these results and detailing the methods can be found here:",
+  shiny::tags$a(href="https://docs.google.com/document/d/1TfqzBPGhL6TEqUuxN5lpy7cJVZcZhyiy/edit", "https://docs.google.com/document/d/1TfqzBPGhL6TEqUuxN5lpy7cJVZcZhyiy/edit",target="_blank"),
+  ". All cohorts included in the analysis are described individually below. We analyze 10 hematological phenotypes (platelet count, red blood cell count, hematocrit, hemoglobin, mean corpuscular volume, red cell distribution width, white blood cell count, monocyte count, neutrophil count, and lymphocyte count) across all cohorts.",
+  
+  shiny::hr(),
+  shiny::h4(shiny::strong("PrediXcan method:")),
+
+  shiny::br()
+)
+```
+
+Then load your `methods.R` script into your working script, using for example:
+```
+method <- source("methods.R")
+```
+
+Finally, use the `method` variable as the value of the `method_details` parameter within the `LocusXcanR` function, as in:
+```
+LocusXcanR(method_details = method)
+```
+
+For a more detailed example of this procedure, see the `example_script.R` and the `methods.R` scripts in `R/example/`.
 
 ## Does the order of the column names in any of the datasets matter?
 The order of the column names does not matter. However, the names of the columns in your data must match the column names (required or optional) listed for each dataset in the Data Pre-processing sections. Any additional variables included in your datasets which do not match those listed in the Data Pre-processing sections will also be printed in the data tables within the application.

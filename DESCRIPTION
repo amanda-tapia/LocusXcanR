@@ -5,18 +5,18 @@ Authors@R: person("Amanda", "Tapia", email = "altapia@live.unc.edu",
                   role = c("aut", "cre"))
 Maintainer: Amanda Tapia <altapia@live.unc.edu>
 Description: What the package does (one paragraph).
-Depends: R (>= 3.5.0),
-         DT,
-         tidyr
+Depends: R (>= 3.5.0)
 Imports: RColorBrewer,
          ggplot2,
-         tidyverse,
+         tidyr,
          magrittr,
          data.table,
          shiny,
          dplyr,
          visNetwork,
-         plotly
+         plotly,
+         DT,
+         stats
 License: A license is not available.
 LazyData: true
 RoxygenNote: 7.1.1

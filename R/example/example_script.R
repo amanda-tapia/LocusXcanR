@@ -45,4 +45,5 @@ LocusXcanR(
          primary_tissue = "DGN",
          meta_present = TRUE,
          multiple_tissues = TRUE,
-         meta_thresh=2.09e-04)
+         meta_thresh=2.09e-04,
+         pvalthresh=6.35938)

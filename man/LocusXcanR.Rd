@@ -6,6 +6,7 @@
 \usage{
 LocusXcanR(
   twas_result,
+  pvalthresh,
   weight_tbl,
   study_name = "",
   pred_exp_corr,
@@ -26,6 +27,8 @@ LocusXcanR(
 }
 \arguments{
 \item{twas_result}{character, file path to TWAS results (required). See Details for required column names.}
+
+\item{pvalthresh}{numeric, -log10 p-value threshold for TWAS results (required).}
 
 \item{weight_tbl}{character, file path to TWAS weights database (required). See Details for required column names.}
 
@@ -78,7 +81,6 @@ Created by: Amanda L. Tapia, Date: 06/08/2020
 
 
 # This is an example with all parameters
-
 headernote <- "All genomic positions are from GRCh37."
 method <- "This is where the methods will go."
 LocusXcanR(

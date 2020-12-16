@@ -17,9 +17,9 @@ Imports: RColorBrewer,
          plotly,
          DT,
          stats
-License: A license is not available.
 LazyData: true
 RoxygenNote: 7.1.1
+License: Example
 Suggests: 
     knitr,
     rmarkdown

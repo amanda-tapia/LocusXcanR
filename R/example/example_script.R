@@ -31,7 +31,7 @@ LocusXcanR(
          all_gwas = "inst/extdata/all_gwas.txt",
          
          #pred_exp_corr = paste0(dsdir,"DGN_expression_dec_cor.Rdata"),
-         pred_exp_corr = "data/pred_exp_corr.Rdata",
+         pred_exp_corr = "inst/extdata/pred_exp_corr.Rda",
          
          #ld_gwas = paste0(dsdir,"locusLD_topsub.ld"),
          ld_gwas = "inst/extdata/ld_gwas.txt",
@@ -41,8 +41,8 @@ LocusXcanR(
          ref_expr_name = "PredictDB Depression Genes and Networks (DGN) weights",
          head_details = headernote,
          method_details = method,
-         conditional_present = T,
+         conditional_present = TRUE,
          primary_tissue = "DGN",
-         meta_present = T,
-         multiple_tissues = T,
+         meta_present = TRUE,
+         multiple_tissues = TRUE,
          meta_thresh=2.09e-04)

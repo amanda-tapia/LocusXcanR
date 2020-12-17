@@ -1,46 +1,52 @@
-# R Shiny application for integrated TWAS results
+# LocusXcanR: An R Shiny application for integrating TWAS results with other 'omics data
 This R Shiny application was developed to assist with TWAS fine-mapping. It allows researchers to integrate information from multiple sources (GWAS and TWAS) and interactively visualize TWAS results in-context, one genomic locus at a time.
 
 Source code available in <code> app.R </code>
 
 ## Prerequisites
-The following R packages are needed for plotting figures and reporting tables:
+The LocusXcanR package depends on R (>= 3.5.0) and imports the following R packages:
 <ul>
-  <li>shiny</li>
-  <li>tidyverse</li>
+  <li>data.table</li>
+  <li>dplyr</li>
   <li>DT</li>
+  <li>ggplot2</li>
+  <li>Gviz</li>
+  <li>magrittr</li>
   <li>plotly</li>
   <li>RColorBrewer</li>
-  <li>data.table</li>
+  <li>shiny</li>
+  <li>stats</li>
+  <li>tidyr</li>
   <li>visNetwork</li>
 </ul>
 
-## app.R input data
-<strong>TWAS results</strong> <br>
-The main results (p-values required) from TWAS. Option to convert p-values to -log10(p-values) and option to include results (p-values required) from TWAS conditional analysis. Other variables in the data set are optional (can be included, excluded, or left blank).
+## How to install the package from GitHub
+First, install the devtools package. You can do this from CRAN. Invoke R and then type:
 
-TO-DO: add an example table here, and include variable definitions.
+<code> install.packages("devtools") </code>
 
-<strong>GWAS results</strong> <br>
-The main results (p-values required) from GWAS. Option to convert p-values to -log10(p-values). Other variables in the data set are optional (can be included, excluded, or left blank).
+Load the devtools package:
 
-TO-DO: add an example table here, and include variable definitions.
+<code>library(devtools)</code>
 
-<strong>Gene expression prediction weights</strong><br>
-The weights, or effect sizes, of model variants, trained in your gene expression reference panel. Required variables are gene identifier, variant identifier, model weight.
+Install the package from GitHub using install_github("author/package") as follows:
 
-TO-DO: add an example table here, and include variable definitions.
+<code>install_github("amanda-tapia/TWAS_RShiny")</code>
 
-<strong>Gene-gene correlations</strong>
+## Accessing LocusXcanR vignette
+A vignette documenting the use of LocusXcanR is contained within the package. After installing the package, run:
 
-TO-DO: add an example table here, and include variable definitions.
+<code>vignette("LocusXcanR")</code>
 
-<strong>LD among GWAS variants</strong>
+This should bring up the vignette in the help window of the R console. If this doesn't work, you may need to try the following:
 
-TO-DO: add an example table here, and include variable definitions.
+<pre>
+  <code> 
+  devtools::install(build_vignettes = TRUE)
+  vignette("LocusXcanR")
+  </code>
+</pre>
 
-
-## Setup and usage example
 ### Hosting your Shiny app locally
 ### Hosting your Shiny app on the Shiny server
 ### Hosting your Shiny app on another server

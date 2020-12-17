@@ -6,7 +6,7 @@
 #' 
 #' Please reference the vignette here () for further details on required and optional variables for each input dataset
 #' 
-#' Created by: Amanda L. Tapia, Date: 06/08/2020
+#' Created by: Amanda L. Tapia, Date: June 8, 2020, Updated: December 16, 2020
 #'
 #' @param twas_result character, file path to TWAS results (required). See Details for required column names.
 #' @param pvalthresh numeric, -log10 p-value threshold for TWAS results (required).
@@ -35,26 +35,6 @@
 #' 
 #' 
 #' # This is an example with all parameters
-#' headernote <- "All genomic positions are from GRCh37."
-#' method <- "This is where the methods will go."
-#' LocusXcanR(
-#'   twas_result = "../TWAS_RShiny/inst/extdata/twas_ds.txt",
-#'   known_variants = "../TWAS_RShiny/inst/extdata/gwas_sentinel.txt",
-#'   weight_tbl = "../TWAS_RShiny/inst/extdata/weight_tbl.txt",
-#'   known_gwas = "../TWAS_RShiny/inst/extdata/known_gwas.txt",
-#'   db_genes = "../TWAS_RShiny/inst/extdata/db_genes.txt",
-#'   all_gwas = "../TWAS_RShiny/inst/extdata/all_gwas.txt",
-#'   pred_exp_corr = "../TWAS_RShiny/inst/extdata/pred_exp_corr.Rda",
-#'   ld_gwas = "../TWAS_RShiny/inst/extdata/ld_gwas.txt",
-#'   study_name = "Genetic Epidemiology Research on Adult Health and Aging (GERA) Europeans",
-#'   ref_expr_name = "PredictDB Depression Genes and Networks (DGN) weights",
-#'   head_details = headernote,
-#'   method_details = method,
-#'   conditional_present = TRUE,
-#'   primary_tissue = "DGN",
-#'   meta_present = TRUE,
-#'   multiple_tissues = TRUE,
-#'   meta_thresh=2.09e-04)
 #' 
 #' 
 #' @importFrom magrittr "%>%"
@@ -63,24 +43,31 @@
 #' @importFrom plotly "renderPlotly","plotlyOutput","ggplotly","subplot","style"
 #' @importFrom visNetwork "renderVisNetwork","visNetworkOutput","visNetwork","visOptions"
 #' @importFrom data.table ":=","data.table","as.data.table"
-#' @importFrom shiny "fluidPage","h3","h4","HTML","tabPanel","tabsetPanel","br","hr","strong","navbarPage","h5","fixedPanel","p"
+#' @importFrom shiny "fluidPage","h3","h4","plotOutput","HTML","tabPanel","tabsetPanel","br","hr","strong","navbarPage","h5","fixedPanel","p"
 #' @importFrom DT "formatStyle","styleEqual","datatable"
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","theme","element_blank","geom_point","geom_hline","xlim","ylim","theme_bw","geom_segment","annotate","geom_text"
 #' @importFrom utils "read.table"
 #' @importFrom stats "complete.cases","setNames"
 #'
 #
+#
 ####################################################################
 
 
-
-####################################################################
+###
 ############## TO DO ###############################################
-####################################################################
+####
 
-# include an optional parameter for marginal TWAS p-value threshold
+# add parameter for ideogram track
+# param ideogram_present
+# param genome_build
+# param cytoband_ds
 
-####################################################################
+
+
+###
+########## Begin Function #####################################################
+###
 
 
 #' @export
@@ -157,9 +144,16 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 
+  # data for ideogram
+  data <- read.table("C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/cytoBandIdeo.txt.gz", 
+                     header = F, sep = "\t")
+  colnames(data) <- c("chrom", "chromStart", "chromEnd", "name", "gieStain")
 
- ####################################################################
  
+   
+ ###
+ ########## Filter primary tissue ##########################################################
+ ###
 
   
   # filter analysis dataset by primary tissue if multiple tissues present
@@ -197,18 +191,22 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   # # meta-analysis threshold
   # metathresh <- log10(0.05/numsignif)
   
+  
   # meta-analysis strict p-value threshold
   if (meta_present==TRUE){
     metathresh=log10(meta_thresh)
   }
-
-
-
   
-############################################################################################
-############################################################################################
+  
 
 
+####
+####### Prep for UI #####################################################################################
+####
+  
+  
+  ############ Prep conditional UI ####################
+  
   # Set the UI when conditional analysis results are present
   # radio button to toggle between marginal and conditional results, when conditional results available
   if (conditional_present==TRUE){
@@ -219,6 +217,8 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
     radios_cond <- ""
   }
   
+  
+  ############ Prep meta UI ####################
   
   # Set the UI when meta-analysis results are present for comparison
   # plot the figure if meta-analysis results are present, otherwise plot nothing
@@ -236,6 +236,8 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
     meta_result5 <- ""
   }
   
+  
+  ############ Prep multi-tissue UI ####################
   
   # Set the UI when results from multiple tissues are available for comparison
   # plot the figure if meta-analysis results are present, otherwise plot nothing
@@ -262,6 +264,9 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
 
 
   
+  ####
+  ############ UI setup ####################
+  ####
   
   # define the UI
   ui <- #tagList(
@@ -285,6 +290,11 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           ),
                           br(),
                           br(),
+                          br(),
+                          
+                          
+                          # ideogram plot
+                          plotOutput("chrplt",height = 100),
                           br(),
                           
 
@@ -409,7 +419,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                         )
                ),
                
-               #########################################################################################    
+               ######### Methods UI ################################################################################    
                
                shiny::tabPanel("Methods",
                         method_details
@@ -419,8 +429,9 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
 
 
 
-############################################################################################
-
+####
+####### Server setup #####################################################################################
+####
 
 
   
@@ -492,23 +503,22 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       tmp
     })
     
-    
-    ############################################################
-    
-    # uncomment when memory available
+
+    ############# Ideogram ###############################################
+
     # ideogram plot
-    # output$chrplt <- renderPlot({
-    #   
-    #   itrack = IdeogramTrack(genome = "hg19", chromosome = paste0("chr",locchr()), bands = data)
-    #   trackplot = c(itrack,GenomeAxisTrack());
-    #   
-    #   plotTracks(c(trackplot), from = xlow(),to=xhigh(),transcriptAnnotation="symbol",
-    #              add53=TRUE,showBandID=TRUE,cex.bands=2,stackHeight=2,background.title = "white",
-    #              col.axis="black",col.title="black",cex.title=2,
-    #              cex.axis=4,just.group="below",cex.main = 1.5,cex=1.5)
-    # })
-    
-    ############################################################
+    output$chrplt <- renderPlot({
+
+      itrack = Gviz::IdeogramTrack(genome = "hg19", chromosome = paste0("chr",locchr()), bands = data)
+      trackplot = c(itrack,Gviz::GenomeAxisTrack());
+
+      Gviz::plotTracks(c(trackplot), from = xlow(),to=xhigh(),transcriptAnnotation="symbol",
+                 add53=TRUE,showBandID=TRUE,cex.bands=2,stackHeight=2,background.title = "white",
+                 col.axis="black",col.title="black",cex.title=2,
+                 cex.axis=4,just.group="below",cex.main = 1.5,cex=1.5)
+    })
+
+    ############# TWAS/GWAS mirror ###############################################
     
     
     
@@ -639,7 +649,8 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
     })
     
-    ############################################################
+    
+    ############# Locus zoom ###############################################
     
     
     # TWAS correlation plots
@@ -772,7 +783,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
     })
     
     
-    ############################################################
+    ############# Network ###############################################
     
     
     # TWAS network plots
@@ -913,7 +924,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
     })
     
     
-    ############################################################
+    ############# Meta analysis ###############################################
     
     # TWAS/GWAS mirror plot of meta-analysis
     output$Tmetamirror <- renderPlotly({
@@ -993,8 +1004,8 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
     })
     
-    ############################################################
     
+    ############# Ref panel compare ###############################################
     
     
     # comparison of TWAS primary_ref results with results from other reference panels
@@ -1432,7 +1443,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
     })
     
-    ############################################################
+    ############# Table TWAS result ###############################################
     
     
     
@@ -1731,7 +1742,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
     # })
     # 
     
-    ############################################################
+    ############# Table known variants ###############################################
     
     # Table of known variants
     output$KnownSNPtbl <- DT::renderDataTable({
@@ -1818,7 +1829,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
     })
     
     
-    ############################################################
+    ############# Table GWAS variants ###############################################
     
     # Table of known variants
     output$GWASvars <- DT::renderDataTable({
@@ -1842,7 +1853,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   
 
 
-############################################################################################
+######### Render app ##################################################################
 
 
   

@@ -73,7 +73,7 @@ application via R Shiny and facilitates TWAS results interpretation in context.
 \details{
 Please reference the vignette here () for further details on required and optional variables for each input dataset
 
-Created by: Amanda L. Tapia, Date: 06/08/2020
+Created by: Amanda L. Tapia, Date: June 8, 2020, Updated: December 16, 2020
 }
 \examples{
 
@@ -81,26 +81,6 @@ Created by: Amanda L. Tapia, Date: 06/08/2020
 
 
 # This is an example with all parameters
-headernote <- "All genomic positions are from GRCh37."
-method <- "This is where the methods will go."
-LocusXcanR(
-  twas_result = "../TWAS_RShiny/inst/extdata/twas_ds.txt",
-  known_variants = "../TWAS_RShiny/inst/extdata/gwas_sentinel.txt",
-  weight_tbl = "../TWAS_RShiny/inst/extdata/weight_tbl.txt",
-  known_gwas = "../TWAS_RShiny/inst/extdata/known_gwas.txt",
-  db_genes = "../TWAS_RShiny/inst/extdata/db_genes.txt",
-  all_gwas = "../TWAS_RShiny/inst/extdata/all_gwas.txt",
-  pred_exp_corr = "../TWAS_RShiny/inst/extdata/pred_exp_corr.Rda",
-  ld_gwas = "../TWAS_RShiny/inst/extdata/ld_gwas.txt",
-  study_name = "Genetic Epidemiology Research on Adult Health and Aging (GERA) Europeans",
-  ref_expr_name = "PredictDB Depression Genes and Networks (DGN) weights",
-  head_details = headernote,
-  method_details = method,
-  conditional_present = TRUE,
-  primary_tissue = "DGN",
-  meta_present = TRUE,
-  multiple_tissues = TRUE,
-  meta_thresh=2.09e-04)
 
 
 }

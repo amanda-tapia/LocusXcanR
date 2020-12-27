@@ -185,7 +185,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   # p-value threshold for primary reference panel
   #pthresh <- -log10(0.05/(nrow(primary_ref_ds)))
   pthresh <- pvalthresh
-  
+
   # number of significant TWAS genes
   # signifrow <- primary_ref_ds %>% filter(SignifGene==1 & is.na(HLARegion) & is.na(MHCRegion)
   #                              & SingleSNP!=1)
@@ -226,8 +226,8 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   # Set the UI when meta-analysis results are present for comparison
   # plot the figure if meta-analysis results are present, otherwise plot nothing
   if (meta_present==TRUE){
-    meta_result1 <- shiny::h4(shiny::strong("Mirror plot of GERA TWAS and meta-analysis TWAS"))
-    meta_result2 <- "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays the same genes from TWAS meta-analysis of ARIC, WHI, and BioMe. In both plots, \"reported in GWAS\" means that the TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity."
+    meta_result1 <- shiny::h4(shiny::strong("Mirror plot of study TWAS and meta-analysis TWAS"))
+    meta_result2 <- "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays the same genes from TWAS meta-analysis of meta-analysis cohort(s). In both plots, \"reported in GWAS\" means that the TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity."
     meta_result3 <- plotly::plotlyOutput("Tmetamirror", height=600)
     meta_result4 <- shiny::br()
     meta_result5 <- shiny::hr()
@@ -243,10 +243,10 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   ############ Prep multi-tissue UI ####################
   
   # Set the UI when results from multiple tissues are available for comparison
-  # plot the figure if meta-analysis results are present, otherwise plot nothing
+  # plot a multi-tabbed figure if results are present, otherwise plot nothing
   if (multiple_tissues==TRUE){
-    secondary_result1 <- h4(strong("Comparison of TWAS results from DGN reference panel to results from secondary reference panels"))
-    secondary_result2 <- "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. The figure in each tab displays a mirror plot of GERA results using DGN reference panel versus GERA results using a secondary reference panel (GWB, GTL, or MSA)."
+    secondary_result1 <- h4(strong("Comparison of TWAS results from primary reference panel to results from secondary reference panel(s)"))
+    secondary_result2 <- "Note: The figure in each tab displays a mirror plot of study results using the primary reference panel versus study results using a secondary reference panel."
    
     secondary_result3 <- tabsetPanel(
       id = "twascompare",
@@ -303,7 +303,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           
                           #### UI mirror ####
                           h4(strong("TWAS-GWAS mirror plot of genes and variants within the locus")),
-                          "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the GERA TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the GERA GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category. Marginal TWAS displays results of gene-trait associations. Conditional TWAS displays results of gene-trait associations, conditional on reported GWAS variants at the locus (conditional results only available for significant TWAS genes).",
+                          "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the study TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the study GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category. Marginal TWAS displays results of gene-trait associations. Conditional TWAS displays results of gene-trait associations, conditional on reported GWAS variants at the locus (conditional results only available for significant TWAS genes).",
                           radios_cond,
                           plotlyOutput("TWASmirror", height = 550),
                           br(),
@@ -312,7 +312,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           
                           #### UI locus zoom ####
                           h4(strong("TWAS-GWAS mirror locus-zoom plot")),
-                          "Note: Top panel displays predicted expression correlation between index TWAS gene and other genes at the locus. Bottom panel displays LD between the index SNP and other SNPs at the locus. Lines connect genes to their predictive model variants. Color scale for genes denotes the degree of predicted expression correlation with the index gene. Color scale for SNPs and solid lines denotes the degree of LD with the index SNP. Dashed red line in the top panel denotes TWAS p-value threshold = 4.37e-7, and in bottom panel denotes GWAS p-value threshold = 5.0e-8",
+                          paste0("Note: Top panel displays predicted expression correlation between index TWAS gene and other genes at the locus. Bottom panel displays LD between the index SNP and other SNPs at the locus. Lines connect genes to their predictive model variants. Color scale for genes denotes the degree of predicted expression correlation with the index gene. Color scale for SNPs and solid lines denotes the degree of LD with the index SNP. Dashed red line in the top panel denotes TWAS p-value threshold = ",formatC(10^(-pthresh), format = "e", digits = 2),", and in bottom panel denotes GWAS p-value threshold = 5.0e-8"),
                           br(),
                           plotlyOutput("TWAScorr", height=550),
                           br(),
@@ -341,11 +341,9 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           
                           
                           #### UI TWAS tbl ####
-                          h4(strong("Overall TWAS results from primary and secondary reference panels within the locus")),
-                          "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. ",
-                          HTML('<span style="background-color:lightgreen"> Significant gene-trait associations highlighted in green. </span> <span style="background-color:tomato"> HLA genes / MHC regions / single SNP models highlighted in red. </span>'),
-                          " MHC region is defined as GRCh37; chr6:28,477,797-33,448,354. Single SNP model indicates that the predictive expression model for the gene contained only a single SNP.",
-                          
+                          h4(strong("Overall TWAS results from primary and secondary reference panel(s) within the locus")),
+                          "Note: Each tab represents TWAS results from a different gene expression reference panel. ",
+
                           shiny::fluidRow(
                             
                             #column(3,
@@ -376,7 +374,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                             shiny::column(12,
                               tabsetPanel(
                                 id = 'twasresult',
-                                tabPanel("DGN", DT::dataTableOutput("primary_ref_DT")),
+                                tabPanel(primary_tissue, DT::dataTableOutput("primary_ref_DT")),
                                 tabPanel("GWB", DT::dataTableOutput("GWBtbl")),
                                 tabPanel("GTL", DT::dataTableOutput("GTLtbl")),
                                 tabPanel("MSA", DT::dataTableOutput("MSAtbl"))
@@ -402,16 +400,16 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           
                           
                           #### UI known GWAS tbl ####
-                          h4(strong("Table 3. Reported GWAS variants within the locus (all traits in the category)")),
-                          h5(HTML('<span style="background-color:tomato">Table <strong>row</strong> is highlighted in red if the SNP is not in GERA imputation data</span>')),
-                          h5(HTML('<span style="background-color:lightgreen"><strong>RSIDs</strong> reported in Figure 1 highlighted in green</span>')),
-                          h5("GWAS ",strong("Genes"),":"),
+                          h4(strong("Reported GWAS sentinel variants within the locus")),
+                          h5(HTML('<span style="background-color:tomato">Table <strong>row</strong> is highlighted in red if the SNP is not in the study imputation data</span>')),
+                          h5(HTML('<span style="background-color:lightgreen">Variants (<strong>chrposall</strong>) reported in figures are highlighted in green</span>')),
+                          h5("GWAS ",strong("genename"),":"),
                           p(HTML('<ul>
-                                  <li><span style="background-color:lightgreen">matching significant TWAS genes highlighted in green</span></li>
-                                  <li><span style="background-color:yellow"    >matching non-significant TWAS genes highlighted in yellow</span></li>
-                                  <li><span style="background-color:orange"    >included in DGN but not predicted in GERA highlighted in orange</span></li>
-                                  <li><span style="background-color:tomato"    >included in DGN but no predictive model was fit for the gene highlighted in red</span></li>
-                                  <li>not included in DGN (i.e. we have no info in this analysis) are not highlighted</li>
+                                  <li><span style="background-color:lightgreen">matching significant TWAS genes are highlighted in green</span></li>
+                                  <li><span style="background-color:yellow"    >matching non-significant TWAS genes are highlighted in yellow</span></li>
+                                  <li><span style="background-color:orange"    >included in primary reference panel but not predicted in study are highlighted in orange</span></li>
+                                  <li><span style="background-color:tomato"    >included in primary reference panel but no predictive model was fit for the gene are highlighted in red</span></li>
+                                  <li>not included in primary reference panel (i.e. no info is available in this analysis) are not highlighted</li>
                                   </ul>
                                   ')),
                               br(),
@@ -421,7 +419,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           
                           
                           #### UI GWAS variants ####
-                          h4(strong("GERA GWAS results displayed in Figure 1 as variants \"Reported in GWAS\"")),
+                          h4(strong("Study GWAS results displayed in figures as variants \"Reported in GWAS\"")),
                           h5("Note: Results listed below are from trait specific GWAS"),
                           DT::dataTableOutput("GWASvars"),
                           br(),
@@ -1128,7 +1126,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
       atop <- atop %>% plotly::layout(yaxis = list(title = 'Primary ref TWAS -log10(p)'),
                               xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
-                              annotations=list(x = 0.5 , y = 1.1, text = "(a) DGN vs. GWB", showarrow = F, 
+                              annotations=list(x = 0.5 , y = 1.1, text = paste0("(a) ",primary_tissue," vs. GWB"), showarrow = F, 
                                                xref='paper', yref='paper',xanchor='center'),
                               legend = list(orientation='h', x=0, y=1),
                               title=list(text=paste0(loctitle(),"\n"),x=0,xanchor='left'), margin=list(t=60)
@@ -1270,9 +1268,9 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                          colScale
       , tooltip = "text")
       
-      btop <- btop %>% plotly::layout(yaxis = list(title = ' DGN TWAS -log10(p)'),
+      btop <- btop %>% plotly::layout(yaxis = list(title = paste0(primary_tissue,' TWAS -log10(p)')),
                               xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
-                              annotations=list(x = 0.5 , y = 1.1, text = "(b) DGN vs. GTL", showarrow = F, 
+                              annotations=list(x = 0.5 , y = 1.1, text = paste0("(b) ",primary_tissue," vs. GTL"), showarrow = F, 
                                                xref='paper', yref='paper',xanchor='center'),
                               legend = list(orientation='h', x=0, y=1),
                               title=list(text=paste0(loctitle(),"\n"),x=0,xanchor='left'), margin=list(t=60))
@@ -1414,9 +1412,9 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                          colScale
       , tooltip = "text")
       
-      ctop <- ctop %>% plotly::layout(yaxis = list(title = 'DGN TWAS -log10(p)'),
+      ctop <- ctop %>% plotly::layout(yaxis = list(title = paste0(primary_tissue, 'TWAS -log10(p)')),
                               xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
-                              annotations=list(x = 0.5 , y = 1.1, text = "(c) DGN vs. MSA", showarrow = F, 
+                              annotations=list(x = 0.5 , y = 1.1, text = paste0("(c) ",primary_tissue," vs. MSA"), showarrow = F, 
                                                xref='paper', yref='paper',xanchor='center'),
                               legend = list(orientation='h', x=0, y=1),
                               title=list(text=paste0(loctitle(),"\n"),x=0,xanchor='left'),margin=list(t=60))

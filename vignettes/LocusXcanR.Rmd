@@ -156,7 +156,7 @@ Additional variables (beyond those that are required or optional) may also be in
 
 Here is an example of <code>twas_ds</code>:
 ```{r}
-knitr::kable(twas_ds[1:5,])
+knitr::kable(twas_ds[79:83,])
 ```
 
 

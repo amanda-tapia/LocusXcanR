@@ -96,9 +96,12 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   #     twas_ds$p_final=twas_ds$p
   #   } else twas_ds$p_final=twas$p_conditional
   # }
-  twas_ds$p_final[is.na(twas_ds$p_conditional)] <- twas_ds$p[is.na(twas_ds$p_conditional)]
-  twas_ds$p_final[!is.na(twas_ds$p_conditional)] <- twas_ds$p_conditional[!is.na(twas_ds$p_conditional)]
-  
+  if (conditional_present==TRUE){
+    twas_ds$p_final[is.na(twas_ds$p_conditional)] <- twas_ds$p[is.na(twas_ds$p_conditional)]
+    twas_ds$p_final[!is.na(twas_ds$p_conditional)] <- twas_ds$p_conditional[!is.na(twas_ds$p_conditional)]
+  } else{
+    twas_ds$p_final <- twas_ds$p
+  }
   
   
   # load known variants dataset
@@ -658,14 +661,14 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
       # select significant and known genes to plot
       primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
-      uniqgenes <- primary_ref_tblplt %>% select(gene)
-      indexgene <- primary_ref_tblplt$gene[primary_ref_tblplt$p == min(primary_ref_tblplt$p)]
+      uniqgenes <- primary_ref_tblplt %>% select(genename)
+      indexgene <- primary_ref_tblplt$genename[primary_ref_tblplt$p == min(primary_ref_tblplt$p)]
       
       
       # extract set of genes from correlation matrix
-      Mindex <- data.table(M[uniqgenes$gene,indexgene])
+      Mindex <- data.table(M[uniqgenes$genename,indexgene])
       colnames(Mindex) <- c("corr")
-      Mindex$gene <- uniqgenes$gene
+      Mindex$genename <- uniqgenes$genename
       
       
       # categorize the correlation values into bins for plotting
@@ -682,10 +685,10 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
       
       # match correlation values and categories back to overall table
-      corplt <- merge(primary_ref_tblplt,Mindex,by.x="gene",by.y="gene")
+      corplt <- merge(primary_ref_tblplt,Mindex,by.x="genename",by.y="genename")
       
       # get the primary_ref weights for the specific genes at locus
-      primary_ref_wtloc <- weight_ds %>% filter(gene %in% corplt$gene)
+      primary_ref_wtloc <- weight_ds %>% filter(genename %in% corplt$genename)
       
       # subset the GWAS variants for specific chr, and phenotype
       gwasallfinloc <- gwasallfin %>% filter(LOCUS==locnum()) %>%
@@ -700,9 +703,9 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       primary_ref_wtgwasloc <- rbind(primary_ref_wtgwasloc1,primary_ref_wtgwasloc2)
       
       # merge GWAS results with TWAS info
-      TWASloc <- corplt %>% select(gene,genename,genestartMB,genemid,genestopMB,log10pval,corgroup,corr)
+      TWASloc <- corplt %>% select(genename,genestartMB,genemid,genestopMB,log10pval,corgroup,corr)
       TWASloc$genemidMB <- round(TWASloc$genemid/1000000,4)
-      primary_ref_wtgwaslocfin <- merge(primary_ref_wtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
+      primary_ref_wtgwaslocfin <- merge(primary_ref_wtgwasloc,TWASloc, by.x='genename',by.y='genename',all.x=T)
       
       # set y limit
       yhigh <- max(corplt$log10pval)+0.25*max(corplt$log10pval)
@@ -791,13 +794,13 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
       # select significant and known genes to plot
       primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
-      uniqgenes <- primary_ref_tblplt %>% select(gene)
-      indexgene <- primary_ref_tblplt$gene[primary_ref_tblplt$p == min(primary_ref_tblplt$p)]
+      uniqgenes <- primary_ref_tblplt %>% select(genename)
+      indexgene <- primary_ref_tblplt$genename[primary_ref_tblplt$p == min(primary_ref_tblplt$p)]
       
       # extract set of genes from correlation matrix
-      Mindex <- data.table(M[uniqgenes$gene,indexgene])
+      Mindex <- data.table(M[uniqgenes$genename,indexgene])
       colnames(Mindex) <- c("corr")
-      Mindex$gene <- uniqgenes$gene
+      Mindex$genename <- uniqgenes$genename
       
       # categorize the correlation values into bins for plotting
       Mindex[,corgroup:= cut(Mindex[,abs(corr)],
@@ -812,10 +815,10 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                            right=T,include.lowest = T)]
       
       # match correlation values and categories back to overall table
-      corplt <- merge(primary_ref_tblplt,Mindex,by.x="gene",by.y="gene")
+      corplt <- merge(primary_ref_tblplt,Mindex,by.x="genename",by.y="genename")
       
       # get the primary_ref weights for the specific genes at locus
-      primary_ref_wtloc <- weight_ds %>% filter(gene %in% corplt$gene)
+      primary_ref_wtloc <- weight_ds %>% filter(genename %in% corplt$genename)
       
       # subset the GWAS variants for specific chr, and phenotype
       gwasallfinloc <- gwasallfin %>% filter(LOCUS==locnum()) %>%
@@ -830,9 +833,9 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       primary_ref_wtgwasloc <- rbind(primary_ref_wtgwasloc1,primary_ref_wtgwasloc2)
       
       # merge GWAS results with TWAS info
-      TWASloc <- corplt %>% select(gene,genename,genestartMB,genemid,genestopMB,log10pval,corgroup)
+      TWASloc <- corplt %>% select(genename,genestartMB,genemid,genestopMB,log10pval,corgroup)
       TWASloc$genemidMB <- round(TWASloc$genemid/1000000,4)
-      primary_ref_wtgwaslocfin <- merge(primary_ref_wtgwasloc,TWASloc, by.x='gene',by.y='gene',all.x=T)
+      primary_ref_wtgwaslocfin <- merge(primary_ref_wtgwasloc,TWASloc, by.x='genename',by.y='genename',all.x=T)
       
       # set y limit
       yhigh <- max(corplt$log10pval)+0.15*max(corplt$log10pval)

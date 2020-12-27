@@ -296,11 +296,12 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           br(),
                           
                           
-                          # ideogram plot
+                          #### UI ideogram plot ####
                           plotOutput("chrplt",height = 100),
                           br(),
                           
-
+                          
+                          #### UI mirror ####
                           h4(strong("TWAS-GWAS mirror plot of genes and variants within the locus")),
                           "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the GERA TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the GERA GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category. Marginal TWAS displays results of gene-trait associations. Conditional TWAS displays results of gene-trait associations, conditional on reported GWAS variants at the locus (conditional results only available for significant TWAS genes).",
                           radios_cond,
@@ -309,6 +310,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           hr(),
                           
                           
+                          #### UI locus zoom ####
                           h4(strong("TWAS-GWAS mirror locus-zoom plot")),
                           "Note: Top panel displays predicted expression correlation between index TWAS gene and other genes at the locus. Bottom panel displays LD between the index SNP and other SNPs at the locus. Lines connect genes to their predictive model variants. Color scale for genes denotes the degree of predicted expression correlation with the index gene. Color scale for SNPs and solid lines denotes the degree of LD with the index SNP. Dashed red line in the top panel denotes TWAS p-value threshold = 4.37e-7, and in bottom panel denotes GWAS p-value threshold = 5.0e-8",
                           br(),
@@ -316,6 +318,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           br(),
                           
                           
+                          #### UI network ####
                           h4(strong("Network visualization of TWAS results")),
                           "Sentinel TWAS gene is indicated by a star, all other genes are squares. Sentinel GWAS variant is indicated by a triangle, all other variants are circles. Color scale of all lines and shapes is based on correlation with the index gene or index variant. Line thickness corresponds to the model weight. Solid line indicates a positive direction of effect and dashed line indicates a negative direction. Size of the shape corresponds to the size of the -log10(p-value).",
                           br(),
@@ -337,6 +340,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           secondary_result5,
                           
                           
+                          #### UI TWAS tbl ####
                           h4(strong("Overall TWAS results from primary and secondary reference panels within the locus")),
                           "Note: DGN = Depression Genes and Networks, GWB = GTEx whole blood, GTL = GTEx EBV transformed lymphocytes, MSA = MESA monocytes; each represents a gene expression reference panel. ",
                           HTML('<span style="background-color:lightgreen"> Significant gene-trait associations highlighted in green. </span> <span style="background-color:tomato"> HLA genes / MHC regions / single SNP models highlighted in red. </span>'),
@@ -397,6 +401,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           # hr(),
                           
                           
+                          #### UI known GWAS tbl ####
                           h4(strong("Table 3. Reported GWAS variants within the locus (all traits in the category)")),
                           h5(HTML('<span style="background-color:tomato">Table <strong>row</strong> is highlighted in red if the SNP is not in GERA imputation data</span>')),
                           h5(HTML('<span style="background-color:lightgreen"><strong>RSIDs</strong> reported in Figure 1 highlighted in green</span>')),
@@ -415,10 +420,18 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           hr(),
                           
                           
-                          h4(strong("Table 4. GERA GWAS results displayed in Figure 1 as variants \"Reported in GWAS\"")),
+                          #### UI GWAS variants ####
+                          h4(strong("GERA GWAS results displayed in Figure 1 as variants \"Reported in GWAS\"")),
                           h5("Note: Results listed below are from trait specific GWAS"),
                           DT::dataTableOutput("GWASvars"),
-                          br()
+                          br(),
+                          
+                          
+                          #### UI weight tbl ####
+                          h4(strong("Gene expression prediction model weights")),
+                          h5("Note: \"LD\" refers to the LD between the most significant rsid at the locus with the variant listed in the row. \"Corr\" refers to the Pearson correlation between the most significant gene at the locus and the gene listed in the row."),
+                          DT::dataTableOutput("weighttbl"),
+                          br(),
                         )
                ),
                
@@ -1850,6 +1863,103 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                 options=list(columnDefs = list(list(visible=FALSE, 
                                                     targets=targetlstfin)))
                 )
+    })
+    
+    
+    
+    ############# Weights table ###############################################
+    
+    
+    # TWAS correlation plots
+    output$weighttbl <- DT::renderDataTable({
+      
+      # select significant and known genes to plot
+      primary_ref_tblplt <- primary_ref_tbl() %>% filter(SignifGene==1 | kngene=="Reported in GWAS")
+      uniqgenes <- primary_ref_tblplt %>% select(genename)
+      indexgene <- primary_ref_tblplt$genename[primary_ref_tblplt$p == min(primary_ref_tblplt$p)]
+      
+      
+      # extract set of genes from correlation matrix
+      Mindex <- data.table(M[uniqgenes$genename,indexgene])
+      colnames(Mindex) <- c("corr")
+      Mindex$genename <- uniqgenes$genename
+      
+      
+      # categorize the correlation values into bins for plotting
+      Mindex[,corgroup:= cut(Mindex[,abs(corr)],
+                             c(0,.2,.4,.6,.8,1),
+                             labels=c("[0 - 0.2]","(0.2 - 0.4]","(0.4 - 0.6]","(0.6 - 0.8]","(0.8 - 1]"),
+                             right=T,include.lowest=T)]
+      
+      # color for correlation categories
+      Mindex[,corcol:= cut(Mindex[,abs(corr)],
+                           c(0,.2,.4,.6,.8,1),
+                           labels=c("#CCCCCC","#333FFF","#00FF00","#FF9900","#FF0000"),
+                           right=T,include.lowest = T)]
+      
+      
+      # match correlation values and categories back to overall table
+      corplt <- merge(primary_ref_tblplt,Mindex,by.x="genename",by.y="genename")
+      
+      # get the primary_ref weights for the specific genes at locus
+      primary_ref_wtloc <- weight_ds %>% filter(genename %in% corplt$genename)
+      
+      # subset the GWAS variants for specific chr, and phenotype
+      gwasallfinloc <- gwasallfin %>% filter(LOCUS==locnum()) %>%
+        select(pos,all1,all2,poslog10p)
+      gwasallfinloc$posnum <- as.numeric(gwasallfinloc$pos)
+      
+      # get the matching GWAS variants for the weights
+      primary_ref_wtgwasloc1 <- merge(primary_ref_wtloc,gwasallfinloc,by.x=c('position','ref_allele','eff_allele'),
+                                      by.y=c('posnum','all1','all2'))
+      primary_ref_wtgwasloc2 <- merge(primary_ref_wtloc,gwasallfinloc,by.x=c('position','ref_allele','eff_allele'),
+                                      by.y=c('posnum','all2','all1'))
+      primary_ref_wtgwasloc <- rbind(primary_ref_wtgwasloc1,primary_ref_wtgwasloc2)
+      
+      # merge GWAS results with TWAS info
+      TWASloc <- corplt %>% select(genename,genestartMB,genemid,genestopMB,log10pval,corgroup,corr)
+      TWASloc$genemidMB <- round(TWASloc$genemid/1000000,4)
+      primary_ref_wtgwaslocfin <- merge(primary_ref_wtgwasloc,TWASloc, by.x='genename',by.y='genename',all.x=T)
+      
+      # set y limit
+      yhigh <- max(corplt$log10pval)+0.25*max(corplt$log10pval)
+      ylow <- min(primary_ref_wtgwasloc$poslog10p,log10(5*10^(-8)))+0.15*min(primary_ref_wtgwasloc$poslog10p,log10(5*10^(-8)))
+      nudgeval <- 0.05*max(abs(yhigh))
+      
+      # set color scale values
+      colval <- c("[0 - 0.2]"="#CCCCCC","(0.2 - 0.4]"="#333FFF",
+                  "(0.4 - 0.6]"="#00FF00","(0.6 - 0.8]"="#FF9900","(0.8 - 1]"="#FF0000")
+      breakval <- c("[0 - 0.2]","(0.2 - 0.4]","(0.4 - 0.6]","(0.6 - 0.8]","(0.8 - 1]")
+      
+      
+      # select the LD for the given locus
+      LDdsloc <- as.data.table(filter(LDds,locus==locnum()))
+      
+      # define correlation and color groups
+      LDdsloc[,ldcol:= cut(LDdsloc[,abs(corrab)],
+                           c(0,.2,.4,.6,.8,1),
+                           labels=c("#CCCCCC","#333FFF","#00FF00","#FF9900","#FF0000"),
+                           right=T,include.lowest = T)]
+      
+      LDdsloc[,ldgroup:= cut(LDdsloc[,abs(corrab)],
+                             c(0,.2,.4,.6,.8,1),
+                             labels=c("[0 - 0.2]","(0.2 - 0.4]","(0.4 - 0.6]","(0.6 - 0.8]","(0.8 - 1]"),
+                             right=T,include.lowest=T)]
+      
+      
+      
+      # match snp LD back with overall file
+      primary_ref_wtgwaslocfin2 <- merge(primary_ref_wtgwaslocfin,LDdsloc, by.x=c('position'),by.y=c('posb'),all.x=T)
+      
+      primary_ref_wtgwaslocfin2_comp <- primary_ref_wtgwaslocfin2[complete.cases(primary_ref_wtgwaslocfin2), ] %>%
+        select(rsid,weight,corrab,genename,corr,ref_allele,eff_allele,chr,position)
+      colnames(primary_ref_wtgwaslocfin2_comp) <-
+        c("rsid","weight","LD","gene","corr","ref allele","eff allele","chr","position")
+    
+      # print data table
+      datatable(primary_ref_wtgwaslocfin2_comp
+                )
+      
     })
     
   }

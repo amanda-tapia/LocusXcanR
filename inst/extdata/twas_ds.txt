@@ -1,4 +1,4 @@
-"tissue"	"locus2"	"locstart"	"locstop"	"chr"	"index"	"pheno"	"genestart"	"genestop"	"p"	"genename"	"P_value_meta"	"SignifGene"	"p_known"
+"tissue"	"locus"	"locstart"	"locstop"	"chr"	"index"	"pheno"	"genestart"	"genestop"	"p"	"genename"	"p_meta"	"SignifGene"	"p_conditional"
 "DGN"	NA	NA	NA	1	""	"RBC_invnorm"	27938575	27961788	0.0470635193	"FGR"	0.5097	0	NA
 "DGN"	NA	NA	NA	3	""	"RBC_invnorm"	52444673	52457657	0.3300672542	"PHF7"	0.1149	0	NA
 "DGN"	NA	NA	NA	3	""	"RBC_invnorm"	52467069	52479101	0.9472409272	"SEMA3G"	0.7253	0	NA

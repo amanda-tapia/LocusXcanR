@@ -1,6 +1,6 @@
 ---
 title: "LocusXcanR: An R Shiny App to Visualize TWAS Results Integrated with Other 'Omics Studies"
-date: "June 8, 2020, Updated: December 16, 2020"
+date: "June 8, 2020, Updated: December 27, 2020"
 author: "Amanda L. Tapia"
 package: LocusXcanR
 output: 
@@ -78,9 +78,9 @@ The `LocusXcanR` function contains the following **required** parameters and the
   
    <li>`known_gwas`: character, file path to study GWAS data matching known variants (required). See Known GWAS dataset section below for more details.</li>
   
-  <li>`db_genes`: character, file path to a list of genes in the database (required). ***update here***</li>
+  <li>`db_genes`: character, file path to a list of genes in the database (required). See Reference panel genes for more details.</li>
   
-  <li>`all_gwas`: character, file path to study GWAS data (required). ***update here***</li>
+  <li>`all_gwas`: character, file path to study GWAS data (required). See GWAS results dataset for more details.</li>
   
   <li>`ld_gwas`: character, file path to the LD among study variants or an LD reference panel  (required). See LD GWAS section for more details.</li>
   
@@ -139,7 +139,7 @@ The dataset <code>twas_ds</code> requires the following variables:
   
   <li><code>p</code>: numeric, p-value of the TWAS association test between phenotype and predicted gene expression</li>
   
-  <li><code>genename</code>: character, the name of the gene (may be the gene name or the ENSMBL ID or any other name you use to identify the gene) ***update here RE gene/genename***</li>
+  <li><code>genename</code>: character, the name of the gene (may be the gene name or the ENSMBL ID or any other name you use to identify the gene)</li>
   
   <li><code>SignifGene</code>: boolean, indicator of whether the gene-trait association is statistically significant (1 if significant, 0 otherwise)</li>
 </ul>
@@ -270,7 +270,7 @@ knitr::kable(M[1:5,1:5])
 
 ## GWAS LD (`ld_gwas`)
 
-The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted. ***note here about matching to the weights table***
+The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted. Chromosome and genomic position in this table should match the chromosome and genomic position of the model variants in the `weight_tbl` dataset.
 
 The dataset `ld_gwas` requires the following variables:
 <ul>

@@ -1,6 +1,6 @@
 ---
 title: "LocusXcanR: An R Shiny App to Visualize TWAS Results Integrated with Other 'Omics Studies"
-date: "June 8, 2020, Updated: December 27, 2020"
+date: "June 8, 2020, Updated: December 29, 2020"
 author: "Amanda L. Tapia"
 package: LocusXcanR
 output: 
@@ -54,13 +54,15 @@ known_variants <- read.table(file.path(dir, "gwas_sentinel.txt"), header=T, stri
 
 known_gwas <- read.table(file.path(dir, "known_gwas.txt"), header=T, stringsAsFactors = F)
 
+cytoband_ds <- read.table(file.path(dir, "cytoBandIdeo.txt.gz"), header = F, sep = "\t")
+
 ```
 
 # LocusXcanR Function
 The `LocusXcanR` function takes several datasets as input, including TWAS results, GWAS results, gene expression reference panel weights,  GWAS LD, and predicted expression correlation. These results are then integrated into a single HTML webpage via R Shiny, and the interactive visualizations and data tables can then be used to facilitate TWAS results interpretation.
 
 ```
-LocusXcanR(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE)
+LocusXcanR(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE, ideogram_present, genome_build, cytoband_ds)
 ```
 
 ## Required parameters
@@ -107,6 +109,10 @@ The `LocusXcanR` function contains the following **optional** parameters and the
   <li>`meta_present`: logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE).</li>
   
   <li>`meta_thresh`: numeric, p-value threshold for meta-analysis results (required if `meta_present = TRUE`).</li>
+  <li>`ideogram_present` logical, TRUE if an IdeogramTrack should be plotted, FALSE otherwise (optional, default is FALSE)
+  <li>`genome_build` character, the genome build for the IdeogramTrack data (required if ideogram_present = TRUE). For example, `genome_build = "hg19"` for Genome Reference Consortium Human Build 37 (GRCh37).
+  
+  <li>`cytoband_ds` character, file path to the cytogenetic bands data set (required if ideogram_present = TRUE). See Ideogram plot section for more details on including an IdeogramTrack in the app.
 </ul>
 
 
@@ -210,7 +216,7 @@ knitr::kable(weight_tbl[c(1:5),])
 
 ## Known variants dataset (`known_variants`)
 
-The `known_variants` dataset contains a list of GWAS sentinel variants with the region. GWAS sentinel variants may come from GWAs Catalog or some other curated list (e.g. from the most recent and/or comprehensive GWAS for your trait of interest). This dataset is used to identify TWAS genes and within-cohort GWAS variants which have already been implicated by (in the case of genes) or identified by previous GWAS studies.
+The `known_variants` dataset contains a list of GWAS sentinel variants with the region. GWAS sentinel variants may come from GWAS Catalog or some other curated list (e.g. from the most recent and/or comprehensive GWAS for your trait of interest). This dataset is used to identify TWAS genes and within-cohort GWAS variants which have already been implicated by (in the case of genes) or identified by previous GWAS studies.
 
 The dataset `known_variants` requires the following variables:
 
@@ -238,7 +244,7 @@ knitr::kable(known_variants[c(1:5),])
 
 
 ## Known GWAS dataset (`known_gwas`)
-The `known_gwas` dataset contains a set of variants that are both included in the analytic cohort GWAS and are known sentinel GWAS variants from other GWAS studies. The dataset includes a variant identifier along with the anlaytic cohort GWAS p-value and the locus number in which you wish to plot the variant.
+The `known_gwas` dataset contains a set of variants that are both included in the analytic cohort GWAS and are known sentinel GWAS variants from other GWAS studies. The dataset includes a variant identifier along with the analytic cohort GWAS p-value and the locus number in which you wish to plot the variant.
 
 The dataset `known_gwas` requires the following variables:
 
@@ -308,6 +314,28 @@ The dataset `db_genes` requires the following variables:
 Here is an example of `db_genes`:
 ```{r}
 knitr::kable(db_genes[c(19:23),])
+```
+
+
+##  Ideogram plot (`cytoband_ds`)
+
+A note on cytogenetic bands:
+
+Each human chromosome has a short arm ("p" for "petit") and long arm ("q" for "queue"), separated by a centromere. The ends of the chromosome are called telomeres. Each chromosome arm is divided into regions, called cytogenetic bands, that can be seen using a microscope and special stains. The cytogenetic bands are labeled p1, p2, p3,   q1, q2, q3, etc., counting from the centromere out toward the telomeres. At higher resolutions, sub-bands can be seen within the bands. The sub-bands are also numbered from the centromere out toward the telomere.
+
+The dataset (`cytoband_ds`) used to identify the cytogenetic bands in `IdeogramTrack()` is typically downloaded directly from UCSC. For example, the example data used here was obtained from the UCSC genome annotation database for the Feb. 2009 assembly of the human genome (hg19, GRCh37 Genome Reference Consortium Human Reference 37 (GCA_000001405.1)), downloaded from http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/.
+
+Here is an example of <code>cytoband_ds</code> used in this example:
+```{r}
+colnames(cytoband_ds) <- c("chrom", "chromStart", "chromEnd", "name", "gieStain")
+knitr::kable(cytoband_ds[1:5,])
+```
+
+Here is an example of the output from IdeogramTrack() which uses the cytogenetic band dataset (`cytoband_ds`):
+```{r fig1, fig.height = 1, fig.width = 8}
+genome_build = "hg19"
+itrack = Gviz::IdeogramTrack(genome = genome_build, chromosome = "chr3", bands = cytoband_ds)
+Gviz::plotTracks(c(itrack), from = 51744800, to=53804965, cex=1.5)
 ```
 
 

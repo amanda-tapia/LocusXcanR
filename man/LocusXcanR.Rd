@@ -22,7 +22,10 @@ LocusXcanR(
   method_details = "",
   primary_tissue,
   meta_present = FALSE,
-  meta_thresh
+  meta_thresh,
+  ideogram_present,
+  genome_build,
+  cytoband_ds
 )
 }
 \arguments{
@@ -61,6 +64,12 @@ LocusXcanR(
 \item{meta_present}{logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE)}
 
 \item{meta_thresh}{numeric, p-value threshold for meta-analysis results (required if meta_present=TRUE)}
+
+\item{ideogram_present}{logical, TRUE if an ideogramTrack should be plotted, FALSE otherwise (optional, default is FALSE)}
+
+\item{genome_build}{character, the genome build for the ideogramTrack data (required if ideogram_present = TRUE)}
+
+\item{cytoband_ds}{character, file path to the cytogenic bands data set (required if ideogram_present = TRUE)}
 }
 \value{
 An R Shiny application

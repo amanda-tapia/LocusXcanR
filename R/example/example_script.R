@@ -46,4 +46,7 @@ LocusXcanR(
          meta_present = TRUE,
          multiple_tissues = TRUE,
          meta_thresh=2.09e-04,
-         pvalthresh=6.35938)
+         pvalthresh=6.35938,
+         ideogram_present = TRUE,
+         cytoband_ds = "inst/extdata/cytoBandIdeo.txt.gz",
+         genome_build = "hg19")

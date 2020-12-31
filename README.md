@@ -31,7 +31,7 @@ Load the devtools package:
 
 Install the package from GitHub using install_github("author/package") as follows:
 
-<code>install_github("amanda-tapia/TWAS_RShiny")</code>
+<code>install_github("amanda-tapia/LocusXcanR")</code>
 
 ## Accessing LocusXcanR vignette
 A vignette documenting the use of LocusXcanR is contained within the package. After installing the package, run:

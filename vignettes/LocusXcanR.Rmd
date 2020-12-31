@@ -62,7 +62,7 @@ cytoband_ds <- read.table(file.path(dir, "cytoBandIdeo.txt.gz"), header = F, sep
 The `LocusXcanR` function takes several datasets as input, including TWAS results, GWAS results, gene expression reference panel weights,  GWAS LD, and predicted expression correlation. These results are then integrated into a single HTML webpage via R Shiny, and the interactive visualizations and data tables can then be used to facilitate TWAS results interpretation.
 
 ```
-LocusXcanR(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE, ideogram_present = FALSE, genome_build, cytoband_ds)
+LocusXcanR(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE, ideogram_present = FALSE, genome_build, cytoband_ds, add_UI = "", add_server = "")
 ```
 
 ## Required parameters
@@ -109,12 +109,14 @@ The `LocusXcanR` function contains the following **optional** parameters and the
   <li>`meta_present`: logical, TRUE if results from TWAS meta-analysis are present for comparison, FALSE otherwise (optional, default is FALSE).</li>
   
   <li>`meta_thresh`: numeric, p-value threshold for meta-analysis results (required if `meta_present = TRUE`).</li>
-  <li>`ideogram_present` logical, TRUE if an IdeogramTrack should be plotted, FALSE otherwise (optional, default is FALSE)
-  <li>`genome_build` character, the genome build for the IdeogramTrack data (required if ideogram_present = TRUE). For example, `genome_build = "hg19"` for Genome Reference Consortium Human Build 37 (GRCh37).
+  <li>`ideogram_present` logical, TRUE if an IdeogramTrack should be plotted, FALSE otherwise (optional, default is FALSE)</li>
+  <li>`genome_build` character, the genome build for the IdeogramTrack data (required if ideogram_present = TRUE). For example, `genome_build = "hg19"` for Genome Reference Consortium Human Build 37 (GRCh37).</li>
   
-  <li>`cytoband_ds` character, file path to the cytogenetic bands data set (required if ideogram_present = TRUE). See Ideogram plot section for more details on including an IdeogramTrack in the app.
+  <li>`cytoband_ds` character, file path to the cytogenetic bands data set (required if ideogram_present = TRUE). See Ideogram plot section for more details on including an IdeogramTrack in the app.</li>
+  
+  <li>`add_UI` character, additional elements to add to UI (optional, default is missing). This parameter can be used to include your own additional items at the end of the UI.</li>
+  <li> `add_server` character, additional elements to add to server (optional, default is missing). This parameter can be used to include your own additional items in the server.</li>
 </ul>
-
 
 
 # Data Pre-processing

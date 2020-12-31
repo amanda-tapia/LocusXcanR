@@ -29,6 +29,8 @@
 #' @param ideogram_present logical, TRUE if an ideogramTrack should be plotted, FALSE otherwise (optional, default is FALSE)
 #' @param genome_build character, the genome build for the ideogramTrack data (required if ideogram_present = TRUE)
 #' @param cytoband_ds character, file path to the cytogenic bands data set (required if ideogram_present = TRUE)
+#' @param add_UI character, additional elements to add to UI (optional, default is missing)
+#' @param add_server character, additional elements to add to server (optional, default is missing)
 #' 
 #' @return An R Shiny application
 #' 
@@ -71,7 +73,8 @@
 
 LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_corr,conditional_present=FALSE,multiple_tissues=FALSE,
                       known_variants,known_gwas,db_genes,all_gwas,ld_gwas,ref_expr_name="",head_details="",method_details="",
-                      primary_tissue,meta_present=FALSE,meta_thresh,ideogram_present=FALSE,genome_build,cytoband_ds){
+                      primary_tissue,meta_present=FALSE,meta_thresh,ideogram_present=FALSE,genome_build,
+                      cytoband_ds,add_UI="",add_Server=""){
   
   # load analysis dataset
   twas_ds <- data.table::fread(twas_result,stringsAsFactors = F, header=T)
@@ -505,6 +508,8 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           h5("Note: \"LD\" refers to the LD between the most significant rsid at the locus with the variant listed in the row. \"Corr\" refers to the Pearson correlation between the most significant gene at the locus and the gene listed in the row."),
                           DT::dataTableOutput("weighttbl"),
                           br(),
+                          
+                          add_UI
                         )
                ),
                
@@ -2180,6 +2185,11 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
     })
     
+  newdata <- reactive({
+    req(add_server!="")
+    
+    add_server
+    })
   }
   
 

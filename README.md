@@ -47,7 +47,7 @@ This should bring up the vignette in the help window of the R console. If this d
   </code>
 </pre>
 
-### Hosting your Shiny app locally
-### Hosting your Shiny app on the Shiny server
-### Hosting your Shiny app on another server
+## Example scripts and data
+See <code>R/example/example_script.R</code> to render an example R Shiny application.
 
+Example datasets can be found in <code>inst/extdata</code>.

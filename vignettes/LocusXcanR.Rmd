@@ -62,7 +62,7 @@ cytoband_ds <- read.table(file.path(dir, "cytoBandIdeo.txt.gz"), header = F, sep
 The `LocusXcanR` function takes several datasets as input, including TWAS results, GWAS results, gene expression reference panel weights,  GWAS LD, and predicted expression correlation. These results are then integrated into a single HTML webpage via R Shiny, and the interactive visualizations and data tables can then be used to facilitate TWAS results interpretation.
 
 ```
-LocusXcanR(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE, ideogram_present, genome_build, cytoband_ds)
+LocusXcanR(twas_result, weight_tbl, study_name = "", pred_exp_corr, conditional_present = FALSE, multiple_tissues = FALSE, known_variants, known_gwas, db_genes, all_gwas, ld_gwas, ref_expr_name = "", head_details = "", method_details = "", primary_tissue, meta_present = FALSE, ideogram_present = FALSE, genome_build, cytoband_ds)
 ```
 
 ## Required parameters
@@ -96,7 +96,7 @@ The `LocusXcanR` function contains the following **optional** parameters and the
   
   <li>`conditional_present`: logical, TRUE if conditional analysis results are available for plotting, FALSE otherwise (default is FALSE). See TWAS results dataset section for more details on including conditional analysis results.</li>
   
-  <li>`multiple_tissues`: logical, TRUE if TWAS results are available from more than one tissue, FALSE if TWAS results are only available from a single tissue or a multi-tissue analysis (default is FALSE). This parameter can be used to compare, for example, results from a primary tissue gene expression reference panel (e.g. Depression Genes and Networks whole blood gene expression) to one or more secondary tissue gene expression reference panel(s) (e.g. Genotype-tissue Expression Project whole blood gene expression), when `multiple_tissues = TRUE`. See TWAS results dataset section for more details on including secondary tissue gene expression reference panels.</li>
+  <li>`multiple_tissues`: logical, TRUE if TWAS results are available from more than one tissue, FALSE if TWAS results are only available from a single tissue or a multi-tissue analysis (default is FALSE). This parameter can be used to compare, for example, results from a primary tissue gene expression reference panel (e.g. Depression Genes and Networks whole blood gene expression) to one or more secondary tissue gene expression reference panel(s) (e.g. Genotype-tissue Expression Project whole blood gene expression), when `multiple_tissues = TRUE`. See TWAS results dataset section for more details on including secondary tissue gene expression reference panels. ***This functionality isn't quite working yet. App will only display results for a single TWAS tissue.***</li>
   
   <li>`ref_expr_name`: character, name of the reference expression data set used in the analysis (optional, default is missing). For example `ref_expr_name = "Depression Genes and Networks whole blood"` or `ref_expr_name = "DGN"`.</li>
   
@@ -394,12 +394,7 @@ The order of the column names does not matter. However, the names of the columns
 
 
 # Acknowledgements
-list people who helped in writing the software
+
 
 # References
-list relevant literature
-See the preamble above for how to add a BibTex file (and see Rmarkdown cheat sheet for how to add references to an Rmarkdown file).
 
-
-Use sections (and sub-sections) to demarcate meaningful steps in the process, e.g. “Preprocessing”, “Quality control”, “Main analysis”, “Plotting results”, “Diagnostics”, etc. You can specify toc: true (and toc_float: true) in the output section of the preamble in order to add a Table of Contents (and make it floating, that is, unfold/fold and follow as the user scrolls down). See the Rmarkdown cheat sheet for instructions on adding options to the preamble.
-Most of the code chunks should be evaluated, it’s ok to add a few eval=FALSE code chunks for demonstration, but vignettes where none of the code chunks are evaluated are not as helpful in my opinion, as the output that a user gets when running the code may differ from what happens in the non-evaluated code chunks, which may even generate errors if they are out-of-date!

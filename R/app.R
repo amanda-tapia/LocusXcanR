@@ -224,10 +224,13 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   # Set the UI when conditional analysis results are present
   # radio button to toggle between marginal and conditional results, when conditional results available
   if (conditional_present==TRUE){
+    condtext <- "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the study TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the study GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category. Marginal TWAS displays results of gene-trait associations. Conditional TWAS displays results of gene-trait associations, conditional on reported GWAS variants at the locus (conditional results only available for significant TWAS genes)."
+
     radios_cond <- shiny::radioButtons("margcondradio", label = h5(strong("Select TWAS results to display:")),
                                        choices = list("Marginal TWAS" = 1, "Conditional TWAS" = 2), 
                                        selected = 1, inline=T)
   } else if(conditional_present==FALSE) {
+    condtext <- "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the study TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the study GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category."
     radios_cond <- ""
   }
   
@@ -372,7 +375,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                           
                           #### UI mirror ####
                           h4(strong("TWAS-GWAS mirror plot of genes and variants within the locus")),
-                          "Note: Top figure displays TWAS significant genes and any additional non-significant genes reported from GWAS, bottom figure displays GWAS variants. In the TWAS plot, \"reported in GWAS\" means that the study TWAS gene was reported in the GWAS catalog as the assigned gene for a single variant signal associated with the phenotype category, often based on physical proximity. In the GWAS plot, \"reported in GWAS\" means that the study GWAS variant was reported in the GWAS catalog as a single variant signal associated with the phenotype category. Marginal TWAS displays results of gene-trait associations. Conditional TWAS displays results of gene-trait associations, conditional on reported GWAS variants at the locus (conditional results only available for significant TWAS genes).",
+                          condtext,
                           radios_cond,
                           plotlyOutput("TWASmirror", height = 550),
                           br(),

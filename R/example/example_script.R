@@ -13,7 +13,7 @@ method <- source("R/example/methods.R")
 # call the function
 LocusXcanR(
          #twas_result = paste0(dsdir,"KaiserAnalysisDS.txt"),
-         twas_result = "inst/extdata/twas_ds.txt",
+         twas_result = "inst/extdata/twas_ds_single.txt",
          
          #known_variants = paste0(dsdir,"RBC_knownsnp.match.txt"),
          known_variants = "inst/extdata/gwas_sentinel.txt",
@@ -44,7 +44,7 @@ LocusXcanR(
          conditional_present = TRUE,
          primary_tissue = "DGN",
          meta_present = TRUE,
-         multiple_tissues = TRUE,
+         multiple_tissues = FALSE,
          meta_thresh=2.09e-04,
          pvalthresh=6.35938,
          ideogram_present = TRUE,

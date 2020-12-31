@@ -23,9 +23,11 @@ LocusXcanR(
   primary_tissue,
   meta_present = FALSE,
   meta_thresh,
-  ideogram_present,
+  ideogram_present = FALSE,
   genome_build,
-  cytoband_ds
+  cytoband_ds,
+  add_UI = "",
+  add_Server = ""
 )
 }
 \arguments{
@@ -70,6 +72,10 @@ LocusXcanR(
 \item{genome_build}{character, the genome build for the ideogramTrack data (required if ideogram_present = TRUE)}
 
 \item{cytoband_ds}{character, file path to the cytogenic bands data set (required if ideogram_present = TRUE)}
+
+\item{add_UI}{character, additional elements to add to UI (optional, default is missing)}
+
+\item{add_server}{character, additional elements to add to server (optional, default is missing)}
 }
 \value{
 An R Shiny application

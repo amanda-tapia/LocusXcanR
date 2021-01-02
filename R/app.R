@@ -1103,127 +1103,129 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
     
     
     ######### NEED TO EDIT CODE HERE FOR comparing reference panels #####
-    
-    n <- length(tissue_list)
-    #varnames <- vector(mode='list', length=n)
-    #varnames  <- paste("output$CompRef", refpanelist[1:n], sep="")
-    varnames <- as.list(paste0("output$CompRef",tissue_list))
-    
-    #refunc <- paste("renderfunc", refpanelist[1:n], sep="")
-    refunc <- vector(mode='list', length=n)
-    
-    for (i in seq(1,n)){
-      refunc[[i]] <- renderPlotly({
-        
-        # select reference panel specific results
-        primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & 
-                                                       chr==locchr() ) %>%
-          select(genename,chr,pheno,genestart,genestop,genemid,log10pval)
-        
-        locrefpanel <- twas_ds %>% filter(tissue==tissue_list[i] & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
-                                            pheno==locpheno()) %>%
-          select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
-        
-        pthreshrefpanel <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue==tissue_list[i],])))
-        
-        #####################
-        
-        # merge secondary reference panel data sets with primary_ref
-        primary_ref_refpanel <- merge(primary_ref_tbl,locrefpanel, by=c("genename","chr","pheno"), all = T)
-        primary_ref_refpanel$inboth <- ifelse(complete.cases(primary_ref_refpanel$log10pval.x,
-                                                             primary_ref_refpanel$log10pval.y),"In Both","Not in Both")
-        
-        #####################
-        
-        
-        # set y limit values for each plot
-        yhighprimary_ref_ <- max(primary_ref_refpanel$log10pval.x, na.rm = T)+0.15*max(primary_ref_refpanel$log10pval.x, na.rm = T)
-        nudgevalprimary_ref_ <- 0.05*yhighprimary_ref_
-        
-        yhighrefpanel <- max(primary_ref_refpanel$log10pval.y,pthreshrefpanel, na.rm = T)+0.15*max(primary_ref_refpanel$log10pval.y,
-                                                                                                   pthreshrefpanel,na.rm = T)
-        nudgevalrefpanel <- 0.05*yhighrefpanel
-        
-        myColors <- setNames( c('#000000', '#56B4E9', '#E69F00'),
-                              c("In Both","Not in Both",NA))
-        colScale <- scale_colour_manual(values = myColors)
-        
-        
-        ####################
-        
-        # plot info for ref panel
-        atop <- ggplotly(ggplot(data=primary_ref_refpanel, 
-                                aes(x=round(genemid.x/1000000,4),
-                                    y=log10pval.x, color=inboth,
-                                    text = paste("Gene: ",genename,
-                                                 "<br>-log10 p-value: ",round(log10pval.x,3)))) +
-                           geom_point(pch=15) +
-                           geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), 
-                                            yend=log10pval.x), size=2) +
-                           geom_text(aes(label=genename), nudge_y = nudgevalprimary_ref_) +
-                           geom_hline(aes(yintercept=pthresh), lty=2, color='red') +
-                           xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
-                           ylim(0,yhighprimary_ref_) +
-                           theme_bw() +
-                           theme(legend.position = 'top', legend.title = element_blank()) +
-                           annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, 
-                                    color='red',
-                                    label=paste0(primary_tissue," TWAS p-value: ", formatC(10^-(pthresh), format = "e",
-                                                                                           digits = 2)),size=4) +
-                           
-                           colScale
-                         , tooltip = "text")
-        
-        atop <- atop %>% plotly::layout(yaxis = list(title = paste0(primary_tissue,' TWAS -log10(p)')),
-                                        xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
-                                        annotations=list(x = 0.5 , y = 1.1, text = paste0("(a) ",primary_tissue," vs. ",tissue_list[i]), 
-                                                         showarrow = F, 
-                                                         xref='paper', yref='paper',xanchor='center'),
-                                        legend = list(orientation='h', x=0, y=1),
-                                        title=list(text=paste0(loctitle(),"\n"),x=0,xanchor='left'), margin=list(t=60)
-        )
-        
-        #####
-        
-        abottom <- ggplotly(ggplot(data=primary_ref_refpanel, 
-                                   aes(x=round(genemid.y/1000000,4),
-                                       y=-log10pval.y, color=inboth,
-                                       text = paste("Gene: ",genename,
-                                                    "<br>log10 p-value: ",round(-log10pval.y,3)))) +
-                              geom_hline(aes(yintercept=-pthreshrefpanel), lty=2, color='red') +
-                              geom_point(pch=15) +
-                              geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, 
-                                               xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
-                              geom_text(aes(label=genename), nudge_y = -1.5*nudgevalrefpanel) +
-                              xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
-                              ylim(-yhighrefpanel,0) +
-                              theme_bw() +
-                              theme(legend.position = 'top', legend.title = element_blank()) +
-                              annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=-pthreshrefpanel-nudgevalrefpanel, 
-                                       color='red',
-                                       label=paste0(tissue_list[i]," TWAS p-value: ", formatC(10^-(pthreshrefpanel), format = "e", 
-                                                                                              digits = 2)),size=4) +
-                              colScale
-                            , tooltip = "text")
-        
-        abottom <- abottom %>% plotly::layout(yaxis = list(title = paste0(tissue_list[i],' TWAS log10(p)'), 
-                                                           range=c(-yhighrefpanel,0.1)),
-                                              xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4)), 
-                                                           title=paste0("position (in Mb)",i)))
-        
-        #####
-        
-        afig <- subplot(atop,style(abottom,showlegend=F),nrows=2,shareX = T, titleX = T, titleY = T, which_layout = 1, 
-                        margin=.01)
-        
-      })
+    if (multiple_tissues == TRUE){
       
-      eval(parse(text=paste0("output$CompRefGTL <- refunc[[",i,"]]")))
-      exprtext <- "output$CompRefGWB <- refunc[[2]]"
-      eval(str2expression(exprtext))
-      eval(parse(text="output$CompRefMSA <- refunc[[3]]"))
-
+      n <- length(tissue_list)
+      #varnames <- vector(mode='list', length=n)
+      #varnames  <- paste("output$CompRef", refpanelist[1:n], sep="")
+      varnames <- as.list(paste0("output$CompRef",tissue_list))
       
+      #refunc <- paste("renderfunc", refpanelist[1:n], sep="")
+      refunc <- vector(mode='list', length=n)
+      
+      for (i in seq(1,n)){
+        refunc[[i]] <- renderPlotly({
+          
+          # select reference panel specific results
+          primary_ref_tbl <- primary_ref_ds %>% filter(genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & 
+                                                         chr==locchr() ) %>%
+            select(genename,chr,pheno,genestart,genestop,genemid,log10pval)
+          
+          locrefpanel <- twas_ds %>% filter(tissue==tissue_list[i] & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
+                                              pheno==locpheno()) %>%
+            select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
+          
+          pthreshrefpanel <- -log10(0.05/(nrow(twas_ds[twas_ds$tissue==tissue_list[i],])))
+          
+          #####################
+          
+          # merge secondary reference panel data sets with primary_ref
+          primary_ref_refpanel <- merge(primary_ref_tbl,locrefpanel, by=c("genename","chr","pheno"), all = T)
+          primary_ref_refpanel$inboth <- ifelse(complete.cases(primary_ref_refpanel$log10pval.x,
+                                                               primary_ref_refpanel$log10pval.y),"In Both","Not in Both")
+          
+          #####################
+          
+          
+          # set y limit values for each plot
+          yhighprimary_ref_ <- max(primary_ref_refpanel$log10pval.x, na.rm = T)+0.15*max(primary_ref_refpanel$log10pval.x, na.rm = T)
+          nudgevalprimary_ref_ <- 0.05*yhighprimary_ref_
+          
+          yhighrefpanel <- max(primary_ref_refpanel$log10pval.y,pthreshrefpanel, na.rm = T)+0.15*max(primary_ref_refpanel$log10pval.y,
+                                                                                                     pthreshrefpanel,na.rm = T)
+          nudgevalrefpanel <- 0.05*yhighrefpanel
+          
+          myColors <- setNames( c('#000000', '#56B4E9', '#E69F00'),
+                                c("In Both","Not in Both",NA))
+          colScale <- scale_colour_manual(values = myColors)
+          
+          
+          ####################
+          
+          # plot info for ref panel
+          atop <- ggplotly(ggplot(data=primary_ref_refpanel, 
+                                  aes(x=round(genemid.x/1000000,4),
+                                      y=log10pval.x, color=inboth,
+                                      text = paste("Gene: ",genename,
+                                                   "<br>-log10 p-value: ",round(log10pval.x,3)))) +
+                             geom_point(pch=15) +
+                             geom_segment(aes(x=round(genestart.x/1000000,4),y=log10pval.x, xend=round(genestop.x/1000000,4), 
+                                              yend=log10pval.x), size=2) +
+                             geom_text(aes(label=genename), nudge_y = nudgevalprimary_ref_) +
+                             geom_hline(aes(yintercept=pthresh), lty=2, color='red') +
+                             xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
+                             ylim(0,yhighprimary_ref_) +
+                             theme_bw() +
+                             theme(legend.position = 'top', legend.title = element_blank()) +
+                             annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=pthresh+nudgevalprimary_ref_, 
+                                      color='red',
+                                      label=paste0(primary_tissue," TWAS p-value: ", formatC(10^-(pthresh), format = "e",
+                                                                                             digits = 2)),size=4) +
+                             
+                             colScale
+                           , tooltip = "text")
+          
+          atop <- atop %>% plotly::layout(yaxis = list(title = paste0(primary_tissue,' TWAS -log10(p)')),
+                                          xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4))),
+                                          annotations=list(x = 0.5 , y = 1.1, text = paste0("(a) ",primary_tissue," vs. ",tissue_list[i]), 
+                                                           showarrow = F, 
+                                                           xref='paper', yref='paper',xanchor='center'),
+                                          legend = list(orientation='h', x=0, y=1),
+                                          title=list(text=paste0(loctitle(),"\n"),x=0,xanchor='left'), margin=list(t=60)
+          )
+          
+          #####
+          
+          abottom <- ggplotly(ggplot(data=primary_ref_refpanel, 
+                                     aes(x=round(genemid.y/1000000,4),
+                                         y=-log10pval.y, color=inboth,
+                                         text = paste("Gene: ",genename,
+                                                      "<br>log10 p-value: ",round(-log10pval.y,3)))) +
+                                geom_hline(aes(yintercept=-pthreshrefpanel), lty=2, color='red') +
+                                geom_point(pch=15) +
+                                geom_segment(aes(x=round(genestart.y/1000000,4),y=-log10pval.y, 
+                                                 xend=round(genestop.y/1000000,4), yend=-log10pval.y), size=2) +
+                                geom_text(aes(label=genename), nudge_y = -1.5*nudgevalrefpanel) +
+                                xlim(round(xlow()/1000000,4),round(xhigh()/1000000,4)) +
+                                ylim(-yhighrefpanel,0) +
+                                theme_bw() +
+                                theme(legend.position = 'top', legend.title = element_blank()) +
+                                annotate(geom="text",x=round(xlow()/1000000,4)+.370000, y=-pthreshrefpanel-nudgevalrefpanel, 
+                                         color='red',
+                                         label=paste0(tissue_list[i]," TWAS p-value: ", formatC(10^-(pthreshrefpanel), format = "e", 
+                                                                                                digits = 2)),size=4) +
+                                colScale
+                              , tooltip = "text")
+          
+          abottom <- abottom %>% plotly::layout(yaxis = list(title = paste0(tissue_list[i],' TWAS log10(p)'), 
+                                                             range=c(-yhighrefpanel,0.1)),
+                                                xaxis = list(range=c(round(xlow()/1000000,4),round(xhigh()/1000000,4)), 
+                                                             title=paste0("position (in Mb)",i)))
+          
+          #####
+          
+          afig <- subplot(atop,style(abottom,showlegend=F),nrows=2,shareX = T, titleX = T, titleY = T, which_layout = 1, 
+                          margin=.01)
+          
+        })
+        
+        eval(parse(text=paste0("output$CompRefGTL <- refunc[[",i,"]]")))
+        exprtext <- "output$CompRefGWB <- refunc[[2]]"
+        eval(str2expression(exprtext))
+        eval(parse(text="output$CompRefMSA <- refunc[[3]]"))
+  
+        
+      }
     }
     
     
@@ -2185,11 +2187,16 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       
     })
     
-  newdata <- reactive({
-    req(add_server!="")
-    
-    add_server
+  if (add_UI == ""){
+    newdata <- reactive({
+      req(add_server!="")
+      
+      add_server
     })
+  } else{
+    add_server
+  }
+
   }
   
 

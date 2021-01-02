@@ -42,7 +42,7 @@ LocusXcanR(
          head_details = headernote,
          method_details = method,
          conditional_present = TRUE,
-         primary_tissue = "DGN",
+         primary_tissue = "",
          meta_present = TRUE,
          multiple_tissues = FALSE,
          meta_thresh=2.09e-04,

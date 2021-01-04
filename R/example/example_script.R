@@ -1,7 +1,7 @@
 
 
 # directory
-dsdir <- "C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/"
+#dsdir <- "C:/Users/manda/OneDrive/Courses - UNC/Dissertation/Kaiser/RApp/"
 
 # example header details
 headernote <- "All genomic positions are from GRCh37.<p>TWAS results for 10 traits are presented in the figures and tables below. Traits and trait categories are listed and defined as follows:<p><ul><li>Platelet count (PLT)</li><li>Red blood cell indices (RBC): red blood cell count (RBC), hematocrit (HCT), hemoglobin (HGB), mean corpuscular volume (MCV), and red cell distribution width (RDW)</li><li>White blood cell indices (WBC): white blood cell count (WBC), monocyte (MONO), neutrophil (NEUTRO), and lymphocyte (LYMPH)</li></ul>"

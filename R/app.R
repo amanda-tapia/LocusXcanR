@@ -2095,7 +2095,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
     ############# Weights table ###############################################
     
     
-    # TWAS correlation plots
+    # Primary reference panel weights table
     output$weighttbl <- DT::renderDataTable({
       
       # select significant and known genes to plot

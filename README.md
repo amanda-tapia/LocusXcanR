@@ -4,7 +4,7 @@ This R Shiny application was developed to assist with TWAS fine-mapping. It allo
 Source code available in <code> app.R </code>
 
 ## Prerequisites
-The LocusXcanR package depends on R (>= 3.5.0) and imports the following R packages:
+The LocusXcanR package depends on R (>= 4.0.3) and imports the following R packages:
 <ul>
   <li>data.table</li>
   <li>dplyr</li>

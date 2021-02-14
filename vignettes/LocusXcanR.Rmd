@@ -1,6 +1,6 @@
 ---
 title: "LocusXcanR: An R Shiny App to Visualize TWAS Results Integrated with Other 'Omics Studies"
-date: "June 8, 2020, Updated: December 29, 2020"
+date: "Created: June 8, 2020; Updated: February 14, 2021"
 author: "Amanda L. Tapia"
 package: LocusXcanR
 output: 
@@ -9,8 +9,7 @@ output:
     toc_float: true
     number_sections: true
 abstract: |
-  Lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
-  lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
+  Transcriptome-wide association studies (TWAS) relate predicted gene expression to traits of interest and can help us understand biological mechanisms underlying associations identified in other genetic studies. Yet, interpreting TWAS results can be challenging, particularly in large-scale analyses with hundreds of statistically significant signals across the genome. Differentiating between causal and spurious signals and including relevant results from other studies and gene expression reference panels are key components in results-interpretation. LocusXcanR is an R package that creates an R Shiny application to interactively visualize TWAS results by integrating them with detailed data from multiple sources, one genomic locus at a time. Although TWAS signals are often assumed to highlight the causal gene at a locus, the app emphasizes the challenges in accepting TWAS signals as causal, especially at complex loci with multiple significant genes, or where genes are poorly predicted by a reference panel. Thus, our app aids in TWAS results interpretation and can be extended to include other ‘omics data in a broadly approachable, interactive, and visual format.
 
 vignette: |
   %\VignetteIndexEntry{LocusXcanR: An R Shiny App to Visualize TWAS Results Integrated with Other 'Omics Studies}
@@ -395,8 +394,13 @@ For a more detailed example of this procedure, see the `example_script.R` and th
 The order of the column names does not matter. However, the names of the columns in your data must match the column names (required or optional) listed for each dataset in the Data Pre-processing sections. Any additional variables included in your datasets which do not match those listed in the Data Pre-processing sections will also be printed in the data tables within the application.
 
 
+## Is the `methods.R` example file necessary for the shiny app?
+`methods.R` isn't required for the app. If you don't give anything to the `method_details` parameter then it defaults to `method_details=""`.
+
+
+## What is the difference between `gwas_sentinel.txt` and `known_gwas.txt` example files?
+The `gwas_sentinel.txt` example data file contains the data that are loaded into the `known_variants` parameter. These data will represent your list of known GWAS sentinel variants from, for example, the latest GWAS analysis on your phenotype of interest. The `known_gwas.txt` example file contains the analytic cohort GWAS p-values that correspond to the known variants from the latest GWAS analysis. So the variants in the `known_gwas.txt` file match the variants in the `gwas_sentinel.txt` file (where there are matches), but the p-value in the `known_gwas.txt` file should come from GWAS in your analytic cohort.
+
+
 # Acknowledgements
-
-
-# References
-
+Thank you to the TWAS working group in Dr. Yun Li's lab at the University of North Carolina at Chapel Hill. Special thanks go out to Bryce Rowland, Jia Wen, and Laura Raffield.

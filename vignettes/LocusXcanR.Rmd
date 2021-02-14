@@ -218,7 +218,7 @@ knitr::kable(weight_tbl[c(1:5),])
 
 ## Known variants dataset (`known_variants`)
 
-The `known_variants` dataset contains a list of GWAS sentinel variants with the region. GWAS sentinel variants may come from GWAS Catalog or some other curated list (e.g. from the most recent and/or comprehensive GWAS for your trait of interest). This dataset is used to identify TWAS genes and within-cohort GWAS variants which have already been implicated by (in the case of genes) or identified by previous GWAS studies.
+The `known_variants` dataset contains a list of GWAS sentinel variants within the region. GWAS sentinel variants may come from GWAS Catalog or some other curated list (e.g. from the most recent and/or comprehensive GWAS for your trait of interest). This dataset is used to identify TWAS genes and within-cohort GWAS variants which have already been implicated by (in the case of genes) or identified by previous GWAS studies.
 
 The dataset `known_variants` requires the following variables:
 

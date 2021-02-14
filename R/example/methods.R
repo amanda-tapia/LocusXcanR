@@ -1,8 +1,7 @@
 shiny::tabPanel("Methods",
   shiny::h3(shiny::strong("Methods")),
-  "A current draft of the manuscript describing these results and detailing the methods can be found here:",
-  shiny::tags$a(href="https://docs.google.com/document/d/1TfqzBPGhL6TEqUuxN5lpy7cJVZcZhyiy/edit", "https://docs.google.com/document/d/1TfqzBPGhL6TEqUuxN5lpy7cJVZcZhyiy/edit",target="_blank"),
-  ". All cohorts included in the analysis are described individually below. We analyze 10 hematological phenotypes (platelet count, red blood cell count, hematocrit, hemoglobin, mean corpuscular volume, red cell distribution width, white blood cell count, monocyte count, neutrophil count, and lymphocyte count) across all cohorts.",
+  "A current draft of the manuscript describing these results and detailing the methods can be found at an immaginary place.",
+  " All cohorts included in the analysis are described individually below. We analyze 10 hematological phenotypes (platelet count, red blood cell count, hematocrit, hemoglobin, mean corpuscular volume, red cell distribution width, white blood cell count, monocyte count, neutrophil count, and lymphocyte count) across all cohorts.",
   
   shiny::hr(),
   shiny::h4(shiny::strong("PrediXcan method:")),

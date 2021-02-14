@@ -53,6 +53,7 @@
 #' @importFrom ggplot2 "scale_colour_manual","ggplot","aes","theme","element_blank","geom_point","geom_hline","xlim","ylim","theme_bw","geom_segment","annotate","geom_text"
 #' @importFrom utils "read.table"
 #' @importFrom stats "complete.cases","setNames"
+#' @importFrom rlang ".data"
 #'
 #
 #
@@ -117,7 +118,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                         stringsAsFactors = F, header = T, sep = '\t')
   cohort_gwas_known$log10p <- -log10(cohort_gwas_known$PVAL)
   cohort_gwas_known$poslog10p <- log10(cohort_gwas_known$PVAL)
-  cohort_gwas_knownfin <- cohort_gwas_known %>% separate(SNP,c("chr","pos","all1","all2"),sep=':',remove=F)
+  cohort_gwas_knownfin <- cohort_gwas_known %>% separate(.data$SNP,c("chr","pos","all1","all2"),sep=':',remove=F)
 
    
   # genes included in reference panel
@@ -126,7 +127,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   
   # load all Kaiser GWAS data (all GWAS with pvalues < 0.05)
   gwasall <- data.table::fread(all_gwas, header = T,stringsAsFactors = F)
-  gwasallfin <- gwasall %>% separate(SNP,c('chr','pos','all1','all2'),sep=':',remove=F,extra = 'merge')
+  gwasallfin <- gwasall %>% separate(.data$SNP,c('chr','pos','all1','all2'),sep=':',remove=F,extra = 'merge')
   gwasallfin$neglog10p <- -log10(gwasallfin$PVAL)
   gwasallfin$poslog10p <- (-1)*gwasallfin$neglog10p
    
@@ -163,7 +164,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
   if (multiple_tissues==TRUE){
     
     # filter the analysis dataset
-    primary_ref_ds <- twas_ds %>% filter(tissue==primary_tissue)
+    primary_ref_ds <- twas_ds %>% filter(.data$tissue==primary_tissue)
     
     # set the list of tissues
     tissue_list <- unique(twas_ds$tissue[twas_ds$tissue!=primary_tissue])
@@ -1121,7 +1122,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
                                                          chr==locchr() ) %>%
             select(genename,chr,pheno,genestart,genestop,genemid,log10pval)
           
-          locrefpanel <- twas_ds %>% filter(tissue==tissue_list[i] & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
+          locrefpanel <- twas_ds %>% filter(.data$tissue==tissue_list[i] & genestart>=xlow() & genestop<=xhigh() & chr==locchr() & 
                                               pheno==locpheno()) %>%
             select(genename,chr, pheno,log10pval,genestart,genestop,genemid, SignifGene)
           
@@ -1746,7 +1747,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      gtltbl <- twas_ds %>% filter(tissue=='GTL',genestart>=xlow() & genestop <=xhigh() & pheno==locpheno() & chr==locchr()) %>%
+      gtltbl <- twas_ds %>% filter(.data$tissue=='GTL',genestart>=xlow() & genestop <=xhigh() & pheno==locpheno() & chr==locchr()) %>%
         #select(genename,chr, genestart, genestop, phenoname,phenocat,se_beta_, p, 
         #       weightsnp,cohortsnp, SignifGene,HLARegion,MHCRegion, SingleSNP)
         select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
@@ -1786,7 +1787,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      gwbtbl <- twas_ds %>% filter(tissue=='GWB',genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr()) %>%
+      gwbtbl <- twas_ds %>% filter(.data$tissue=='GWB',genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr()) %>%
         # select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
         #        SignifGene,HLARegion,MHCRegion,SingleSNP)
         select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
@@ -1826,7 +1827,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
       # locchr<- unique(locds$chr) #locus chromosome
       
       # select all genes at locus
-      msatbl <- twas_ds %>% filter(tissue=='MSA',genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr()) %>%
+      msatbl <- twas_ds %>% filter(.data$tissue=='MSA',genestart>=xlow() & genestop<=xhigh() & pheno==locpheno() & chr==locchr()) %>%
         # select(genename,chr, genestart,genestop,phenoname,phenocat,se_beta_, p,weightsnp,cohortsnp, 
         #        SignifGene,HLARegion,MHCRegion,SingleSNP)
         select(-locus,-locstart,-locstop,-genestartMB,-genestopMB,-genemid,-genemidMB,-log10pval)
@@ -2028,7 +2029,7 @@ LocusXcanR <- function(twas_result,pvalthresh,weight_tbl,study_name="",pred_exp_
         phenotbl$chrposall2 <- paste0(phenotbl$chr,":",phenotbl$position,":",phenotbl$`otherallele`,":",phenotbl$`effectallele`)
         
         # indicator for snps included in GWAS results
-        locgwas <- cohort_gwas_knownfin %>% filter(Locus==locnum()) %>% select(SNP)
+        locgwas <- cohort_gwas_knownfin %>% filter(Locus==locnum()) %>% select(.data$SNP)
         phenotbl$X19 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall),1,0)
         phenotbl$X20 <- ifelse(grepl(paste(unique(locgwas$SNP),collapse="|"),phenotbl$chrposall2),1,0)
         

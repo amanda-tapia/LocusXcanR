@@ -3,7 +3,7 @@ LocusXcanR is an R package that creates an R Shiny application to assist with TW
 
 For additional details and an application of LocusXcanR, please reference our manuscript currently available on bioRxiv: https://www.biorxiv.org/content/10.1101/2021.02.23.432444v1
 
-Source code available in <code> app.R </code>
+Source code available in <code> R/app.R </code>
 
 ## Prerequisites
 The LocusXcanR package depends on R (>= 4.0.3) and imports the following R packages:

@@ -277,13 +277,13 @@ knitr::kable(M[1:5,1:5])
 
 ## GWAS LD (`ld_gwas`)
 
-The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted. Chromosome and genomic position in this table should match the chromosome and genomic position of the model variants in the `weight_tbl` dataset.
+The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted. Chromosome and genomic position in this table should match the chromosome and genomic position of the model variants in the `weight_tbl` dataset. The variables `chra` and `posa` at each locus represent the index SNP for the locus.
 
 The dataset `ld_gwas` requires the following variables:
 <ul>
-  <li>`chra`: numeric, the chromosome number for variant (a)</li>
+  <li>`chra`: numeric, the chromosome number for variant (a). This is for the index variant at the locus.</li>
  
-  <li>`posa`: numeric, the genomic position for variant (a)</li>
+  <li>`posa`: numeric, the genomic position for variant (a). This is for the index variant at the locus.</li>
   
   <li>`chrb`: numeric, the chromosome number for variant (b)</li>
  
@@ -291,7 +291,7 @@ The dataset `ld_gwas` requires the following variables:
   
   <li>`corrab`: numeric, LD between variant (a) and variant (b)</li>
   
-  <li>`locus`: numeric, the locus in which these variants will be plotted (b)</li>
+  <li>`locus`: numeric, the locus number in which these variants will be plotted (b)</li>
 </ul>
 
 Here is an example of `ld_gwas`:

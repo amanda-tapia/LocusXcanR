@@ -101,7 +101,7 @@ The `LocusXcanR` function contains the following **optional** parameters and the
   
   <li>`head_details`: character, any additional header details to be included in the app (optional, default is missing). HTML formatting commands may be used. See Frequently Asked Questions section for `header_details` examples.</li>
   
-  <li>`method_details`: character, detailed methods section (optional, default is missing). HTLM formatting commands may be used. See Frequently Asked Questions for `method_details` examples.</li>
+  <li>`method_details`: character, detailed methods section (optional, default is missing). HTML formatting commands may be used. See Frequently Asked Questions for `method_details` examples.</li>
   
   <li>`primary_tissue`: character, if multiple tissues are available for analysis, list the name of the primary tissue (required if `multiple_tissues = TRUE`.  For example, if you have results to compare from DGN and GTEx, and DGN is your primary tissue reference panel, then `primary_tissue = "DGN"`. The character string given to `primary_tissue` must match a `tissue` name in the dataset loaded by `twas_result`. See TWAS results dataset section for more details.</li>
   

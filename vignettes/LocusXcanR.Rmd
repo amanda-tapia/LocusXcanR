@@ -109,11 +109,12 @@ The `LocusXcanR` function contains the following **optional** parameters and the
   
   <li>`meta_thresh`: numeric, p-value threshold for meta-analysis results (required if `meta_present = TRUE`).</li>
   <li>`ideogram_present` logical, TRUE if an IdeogramTrack should be plotted, FALSE otherwise (optional, default is FALSE)</li>
-  <li>`genome_build`: character, the genome build for the IdeogramTrack data (required if ideogram_present = TRUE). For example, `genome_build = "hg19"` for Genome Reference Consortium Human Build 37 (GRCh37).</li>
+  <li>`genome_build`: character, the genome build for the IdeogramTrack data (required if `ideogram_present = TRUE`). For example, `genome_build = "hg19"` for Genome Reference Consortium Human Build 37 (GRCh37).</li>
   
-  <li>`cytoband_ds`: character, file path to the cytogenetic bands data set (required if ideogram_present = TRUE). See Ideogram plot section for more details on including an IdeogramTrack in the app.</li>
+  <li>`cytoband_ds`: character, file path to the cytogenetic bands data set (required if `ideogram_present = TRUE`). See Ideogram plot section for more details on including an IdeogramTrack in the app.</li>
   
   <li>`add_UI`: character, additional elements to add to UI (optional, default is missing). This parameter can be used to include your own additional items at the end of the UI.</li>
+  
   <li> `add_server`: character, additional elements to add to server (optional, default is missing). This parameter can be used to include your own additional items in the server.</li>
 </ul>
 

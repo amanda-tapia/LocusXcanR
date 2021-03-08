@@ -278,7 +278,7 @@ knitr::kable(M[1:5,1:5])
 
 ## GWAS LD (`ld_gwas`)
 
-The dataset containing pair-wise LD values among the variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted. Chromosome and genomic position in this table should match the chromosome and genomic position of the model variants in the `weight_tbl` dataset. The variables `chra` and `posa` at each locus represent the index SNP for the locus.
+The dataset containing pair-wise LD values among the predictive model variants at the locus is specified by the `ld_gwas` parameter. The dataset includes chromosome and genomic position for each variant, and each row in the table additionally contains the LD between the pair-wise variants and the locus in which the variants should be plotted. Chromosome and genomic position in this table should match the chromosome and genomic position of the model variants in the `weight_tbl` dataset. The variables `chra` and `posa` at each locus represent the chromosome and position for the index SNP at the locus.
 
 The dataset `ld_gwas` requires the following variables:
 <ul>
@@ -292,7 +292,7 @@ The dataset `ld_gwas` requires the following variables:
   
   <li>`corrab`: numeric, LD between variant (a) and variant (b)</li>
   
-  <li>`locus`: numeric, the locus number in which these variants will be plotted (b)</li>
+  <li>`locus`: numeric, the locus number in which these variants will be plotted</li>
 </ul>
 
 Here is an example of `ld_gwas`:
@@ -342,11 +342,19 @@ Gviz::plotTracks(c(itrack), from = 51744800, to=53804965, cex=1.5)
 
 
 # R shiny example function
-An example of the R shiny application used on a real data analysis (i.e. results from TWAS and GWAS) is available in the R script `R/example/example\_script.R`.
+An example of the R shiny application used on a real data analysis (i.e. results from TWAS and GWAS) is available in the R script `R/example/example_script.R`.
 
 # Publishing your Shiny app
+R Shiny applications may be shared via several different formats. Shiny applications are fundamentally a web page, which subsequently allows them to be shared over the web. Essentially, in order for the application to be shared over the web, you must arrange to replace your own computer, which shares your app locally, with a web server that can share your app over the cloud.
+
+Files must be saved in a standardized format and directory structure in order for any Shiny server to build your app. Once your app is appropriately packaged for a Shiny server, RStudio recommends starting by launching your app on shinyapps.io. Shinyapps.io is a service run by RStudio that allows you to share your apps online; the free server is built by RStudio and is easy to use, secure, and scalable to multiple users.
+
+For additional details and recommendations about publishing your application online, see RStudio's R Shiny tutorial: https://vimeo.com/rstudioinc/review/131218530/212d8a5a7a/#t=25m49s
 
 # Frequently Asked Questions
+
+## Where can I learn more about getting started with R Shiny?
+RStudio's R Shiny video tutorials provide a great beginner's guide to the R Shiny framework: https://shiny.rstudio.com/tutorial/. Links to more advanced Shiny topics are available from this web page as well. 
 
 ## What can I include in my header details?
 The `header_details` parameter is a character string parameter which may include simple text characters and/or HTML formatting commands. For example, simple text characters may include the following:

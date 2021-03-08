@@ -155,7 +155,7 @@ The dataset <code>twas_ds</code> requires the following variables:
 
 Optional variables may also be included in the <code>twas_ds</code> dataset. These include the following:
 <ul>
-  <li><code>p_meta</code>: numeric, p-value from a TWAS meta-analysis used for replication, if available (required if `meta_present = TRUE`</li>
+  <li><code>p_meta</code>: numeric, p-value from a TWAS meta-analysis used for replication, if available (required if `meta_present = TRUE`)</li>
  
   <li><code>p_conditional</code>: numeric, p-value from a TWAS conditional analysis, if available (required if `conditional_present = TRUE`</li>
 </ul>
@@ -197,7 +197,7 @@ The dataset `weight_tbl` requires the following variables:
 <ul>
   <li>`rsid`: character, the RSID of the model variant</li>
  
-  <li>`gene`: character, the name of the gene</li>
+  <li>`genename`: character, the name of the gene</li>
   
   <li>`weight`: numeric, the weight corresponding to the effect of the model variant on the gene</li>
   
@@ -218,7 +218,7 @@ knitr::kable(weight_tbl[c(1:5),])
 
 ## Known variants dataset (`known_variants`)
 
-The `known_variants` dataset contains a list of GWAS sentinel variants within the region. GWAS sentinel variants may come from GWAS Catalog or some other curated list (e.g. from the most recent and/or comprehensive GWAS for your trait of interest). This dataset is used to identify TWAS genes and within-cohort GWAS variants which have already been implicated by (in the case of genes) or identified by previous GWAS studies.
+The `known_variants` dataset contains a list of GWAS sentinel variants within the region. GWAS sentinel variants may come from GWAS Catalog or some other curated list (e.g. from the most recent and/or comprehensive GWAS for your trait of interest). This dataset is used to identify TWAS genes which have already been assigned to GWAS variants and/or identify within-cohort GWAS variants which have already been identified by previous GWAS studies.
 
 The dataset `known_variants` requires the following variables:
 
@@ -227,7 +227,7 @@ The dataset `known_variants` requires the following variables:
  
   <li>`position`: numeric, the genomic position of the sentinel variant</li>
   
-  <li>`genename`: character, the name of the gene that has been implicated by the sentinel variant</li>
+  <li>`genename`: character, the name of the gene that has been assigned by the sentinel variant</li>
   
   <li>`incohort`: boolean, indicator identifying whether the sentinel variant is also well-imputed in the analytic cohort (0 = sentinel variant is not in the analytic cohort, 1 = sentinel variant is in the analytic cohort)</li>
 
@@ -246,19 +246,19 @@ knitr::kable(known_variants[c(1:5),])
 
 
 ## Known GWAS dataset (`known_gwas`)
-The `known_gwas` dataset contains a set of variants that are both included in the analytic cohort GWAS and are known sentinel GWAS variants from other GWAS studies. The dataset includes a variant identifier along with the analytic cohort GWAS p-value and the locus number in which you wish to plot the variant.
+The `known_gwas` dataset contains the set of variants that are included in both the analytic GWAS cohort and are known sentinel GWAS variants from other GWAS studies. The dataset includes a variant identifier along with the GWAS p-value for the analytic cohort and the locus number in which you wish to plot the variant.
 
 The dataset `known_gwas` requires the following variables:
 
 <ul>
-  <li>`SNP`: character, an identifier for the analytic cohort GWAS variant</li>
+  <li>`SNP`: character, an identifier for the GWAS variant in the analytic cohort given by chr : pos : allele1 : allele2</li>
  
-  <li>`PVAL`: numeric, the p-value for the analytic cohort GWAS variant </li>
+  <li>`PVAL`: numeric, the GWAS p-value for the variant in the analytic cohort</li>
 
   <li>`Locus`: numeric, the locus number in which you wish to plot the variant </li>
 </ul>
 
-Additional fields may be included in the dataset. Any additional fields will be printed in the data table reported in the application.
+Additional fields (beyond those that are required) may also be included in the dataset. Any additional variables will be printed in the data table reported in the application.
 
 Here is an example of `known_gwas`:
 ```{r}
@@ -341,7 +341,8 @@ Gviz::plotTracks(c(itrack), from = 51744800, to=53804965, cex=1.5)
 ```
 
 
-# Example function
+# R shiny example function
+An example of the R shiny application used on a real data analysis (i.e. results from TWAS and GWAS) is available in the R script `R/example/example\_script.R`.
 
 # Publishing your Shiny app
 
